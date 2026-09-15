@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800">
+  <rect width="600" height="800" fill="#1a1614"/>
+  <rect width="600" height="800" fill="url(#g3)"/>
+  <defs>
+    <radialGradient id="g3" cx="50%" cy="35%" r="75%">
+      <stop offset="0%" stop-color="#3a2321"/>
+      <stop offset="100%" stop-color="#141110"/>
+    </radialGradient>
+  </defs>
+  <g stroke="#f3f1ec" stroke-opacity="0.55" stroke-width="2" fill="none">
+    <rect x="244" y="176" width="112" height="58" rx="10"/>
+    <rect x="264" y="146" width="72" height="34" rx="6"/>
+    <rect x="222" y="234" width="156" height="336" rx="20"/>
+  </g>
+  <rect x="222" y="460" width="156" height="110" fill="#a3272a" fill-opacity="0.35"/>
+  <circle cx="300" cy="159" r="5" fill="#c8383b"/>
+  <text x="300" y="630" text-anchor="middle" fill="#948f87" font-family="Georgia, serif" font-size="22" letter-spacing="4">RK ROUGE</text>
+  <text x="300" y="660" text-anchor="middle" fill="#5c5954" font-family="Georgia, serif" font-size="14" letter-spacing="6">No 03</text>
+</svg>

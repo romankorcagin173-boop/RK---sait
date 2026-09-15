@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800">
+  <rect width="600" height="800" fill="#161615"/>
+  <rect width="600" height="800" fill="url(#p1)"/>
+  <defs>
+    <radialGradient id="p1" cx="50%" cy="40%" r="75%">
+      <stop offset="0%" stop-color="#28211f"/>
+      <stop offset="100%" stop-color="#111010"/>
+    </radialGradient>
+  </defs>
+  <g stroke="#f3f1ec" stroke-opacity="0.6" stroke-width="2" fill="none" stroke-linejoin="round">
+    <polygon points="300,190 420,280 420,470 300,560 180,470 180,280"/>
+    <line x1="180" y1="280" x2="300" y2="350"/>
+    <line x1="420" y1="280" x2="300" y2="350"/>
+    <line x1="300" y1="350" x2="300" y2="560"/>
+  </g>
+  <circle cx="300" cy="190" r="5" fill="#a3272a"/>
+  <text x="300" y="630" text-anchor="middle" fill="#948f87" font-family="Georgia, serif" font-size="20" letter-spacing="3">MONOLITH FIGURE</text>
+</svg>
