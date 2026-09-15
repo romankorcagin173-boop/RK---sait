@@ -32,9 +32,15 @@ export function EnvelopeScene() {
         scrollTrigger: {
           trigger: sectionRef.current,
           start: "top top",
-          end: "+=260%",
+          end: () => "+=" + window.innerHeight * 2.6,
           scrub: 1,
           pin: true,
+          // GSAP disables pin-spacing by default when the pinned element's
+          // parent is `display: flex` (our <main> is) — without this the
+          // scroll track never actually reserved room for the animation,
+          // so the pinned scene and the next section fought over the same
+          // scroll range and visually collided.
+          pinSpacing: true,
           anticipatePin: 1,
           onUpdate: (self) => {
             gsap.to(hintRef.current, { opacity: self.progress > 0.02 ? 0 : 1, duration: 0.2 });
@@ -100,12 +106,11 @@ export function EnvelopeScene() {
             aspectRatio: "1.586",
             transformStyle: "preserve-3d",
             zIndex: 15,
-            filter: "drop-shadow(0 30px 40px rgba(0,0,0,0.55))",
           }}
         >
           <div
             className="absolute inset-0 rounded-2xl bg-charcoal-soft border border-line-strong flex items-center justify-center overflow-hidden"
-            style={{ backfaceVisibility: "hidden" }}
+            style={{ backfaceVisibility: "hidden", boxShadow: "0 30px 40px rgba(0,0,0,0.55)" }}
           >
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_30%,rgba(243,241,236,0.06),transparent_65%)]" />
             <span className="font-display text-[15vw] sm:text-7xl text-paper/[0.08] tracking-tight select-none">
@@ -115,7 +120,11 @@ export function EnvelopeScene() {
           </div>
           <div
             className="absolute inset-0 rounded-2xl overflow-hidden border border-line-strong"
-            style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+            style={{
+              backfaceVisibility: "hidden",
+              transform: "rotateY(180deg)",
+              boxShadow: "0 30px 40px rgba(0,0,0,0.55)",
+            }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img

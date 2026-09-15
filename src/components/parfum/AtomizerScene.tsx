@@ -30,9 +30,10 @@ export function AtomizerScene() {
         scrollTrigger: {
           trigger: sectionRef.current,
           start: "top top",
-          end: "+=240%",
+          end: () => "+=" + window.innerHeight * 2.4,
           scrub: 1,
           pin: true,
+          pinSpacing: true,
           anticipatePin: 1,
           onUpdate: (self) => {
             gsap.to(hintRef.current, { opacity: self.progress > 0.02 ? 0 : 1, duration: 0.2 });
