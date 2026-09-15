@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+:root {
+  --color-ink: #0a0a0b;
+  --color-ink-soft: #121213;
+  --color-charcoal: #201f1d;
+  --color-charcoal-soft: #2a2926;
+  --color-paper: #f3f1ec;
+  --color-paper-dim: #d9d6cd;
+  --color-ash: #948f87;
+  --color-ash-soft: #5c5954;
+  --color-red: #a3272a;
+  --color-red-bright: #c8383b;
+  --color-line: rgba(243, 241, 236, 0.1);
+  --color-line-strong: rgba(243, 241, 236, 0.18);
+}
+
+@theme inline {
+  --color-ink: var(--color-ink);
+  --color-ink-soft: var(--color-ink-soft);
+  --color-charcoal: var(--color-charcoal);
+  --color-charcoal-soft: var(--color-charcoal-soft);
+  --color-paper: var(--color-paper);
+  --color-paper-dim: var(--color-paper-dim);
+  --color-ash: var(--color-ash);
+  --color-ash-soft: var(--color-ash-soft);
+  --color-red: var(--color-red);
+  --color-red-bright: var(--color-red-bright);
+  --color-line: var(--color-line);
+  --color-line-strong: var(--color-line-strong);
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-playfair);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-ink);
+  color: var(--color-paper);
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+::selection {
+  background: var(--color-red);
+  color: var(--color-paper);
+}
+
+.font-display {
+  font-family: var(--font-playfair), serif;
+}
+
+.text-gradient-red {
+  background: linear-gradient(120deg, var(--color-red-bright), var(--color-red));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hairline {
+  border-color: var(--color-line);
+}
+
+.container-page {
+  width: 100%;
+  max-width: 1240px;
+  margin-inline: auto;
+  padding-inline: 20px;
+}
+
+@media (min-width: 768px) {
+  .container-page {
+    padding-inline: 40px;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.7s ease forwards;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
