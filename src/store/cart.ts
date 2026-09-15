@@ -55,6 +55,12 @@ export const useCartStore = create<CartState>()(
       total: () => get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),
       count: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
     }),
-    { name: "rk-cart" }
+    {
+      name: "rk-cart",
+      // Rehydrated manually after mount (see CartHydration) so the very
+      // first client render matches the server's empty-cart render instead
+      // of jumping straight to whatever was in localStorage.
+      skipHydration: true,
+    }
   )
 );
