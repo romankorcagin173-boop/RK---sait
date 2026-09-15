@@ -76,8 +76,11 @@ export default function CheckoutPage() {
           comment: form.comment || undefined,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Не удалось оформить заказ.");
+      const raw = await res.text();
+      const data = raw ? JSON.parse(raw) : null;
+      if (!res.ok || !data) {
+        throw new Error(data?.error || "Сервер не ответил. Попробуйте ещё раз.");
+      }
 
       setResult(data);
       clear();
