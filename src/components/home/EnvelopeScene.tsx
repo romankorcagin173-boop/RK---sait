@@ -85,11 +85,23 @@ export function EnvelopeScene() {
         className="relative z-[60] flex items-center justify-center"
         style={{ perspective: "1800px", width: "min(92vw, 480px)", height: "min(74vh, 340px)" }}
       >
-        {/* Envelope back panel */}
-        <div
-          className="absolute inset-0 rounded-2xl border border-line-strong bg-charcoal"
-          style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 50% 60%, 0 100%)" }}
-        />
+        {/* Envelope back panel — a plain body; the seam lines below hint at
+            the side/bottom folds without competing with the top flap. */}
+        <div className="absolute inset-0 rounded-2xl border border-line-strong bg-charcoal overflow-hidden">
+          <svg
+            className="absolute inset-0 h-full w-full"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+          >
+            <path
+              d="M0 100 L42 45 L58 45 L100 100"
+              fill="none"
+              stroke="var(--color-line-strong)"
+              strokeWidth="0.6"
+              vectorEffect="non-scaling-stroke"
+            />
+          </svg>
+        </div>
 
         {/* Soft contact shadow under the emerging card */}
         <div
@@ -105,7 +117,9 @@ export function EnvelopeScene() {
             width: "66%",
             aspectRatio: "1.586",
             transformStyle: "preserve-3d",
-            zIndex: 15,
+            // Above the flap (30) at all times — as the card travels out of
+            // the envelope it must never dip behind any envelope part.
+            zIndex: 40,
           }}
         >
           <div
@@ -135,20 +149,17 @@ export function EnvelopeScene() {
           </div>
         </div>
 
-        {/* Envelope front pocket (lower flap) */}
-        <div
-          className="absolute inset-0 rounded-2xl border border-line-strong bg-charcoal-soft"
-          style={{ zIndex: 20, clipPath: "polygon(0 100%, 50% 53%, 100% 100%)" }}
-        />
-
-        {/* Envelope top flap */}
+        {/* Envelope top flap — the only moving envelope part. A single
+            realistic flap (apex pointing down, ~42% of the envelope's
+            height) instead of the old two-triangle "bowtie" shape, which
+            read as a confusing hourglass rather than a real envelope. */}
         <div
           ref={flapRef}
           className="absolute left-0 right-0 top-0 rounded-t-2xl border border-line-strong bg-charcoal-soft"
           style={{
-            height: "53%",
+            height: "42%",
             zIndex: 30,
-            clipPath: "polygon(0 0, 100% 0, 50% 100%)",
+            clipPath: "polygon(0 0, 100% 0, 100% 12%, 50% 100%, 0 12%)",
             transformStyle: "preserve-3d",
           }}
         >
