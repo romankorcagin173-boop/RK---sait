@@ -47,12 +47,30 @@ function getSprayTexture(): THREE.Texture {
   return texture;
 }
 
-function Nozzle() {
+// The pump actuator revealed once the cap lifts off — a collar seated on
+// the neck, a tapered stem, and a flattened press-button top with its own
+// spray outlet, instead of a single floating box. Sits entirely inside the
+// cap's footprint (y 2.05–2.6) so it's hidden until the cap actually lifts.
+function SprayActuator() {
   return (
-    <mesh position={[0, 2.1, 0.05]}>
-      <boxGeometry args={[0.22, 0.06, 0.16]} />
-      <meshStandardMaterial color="#a3272a" roughness={0.5} metalness={0.2} />
-    </mesh>
+    <group>
+      <mesh position={[0, 2.085, 0]}>
+        <cylinderGeometry args={[0.15, 0.16, 0.05, 24]} />
+        <meshStandardMaterial color="#2b2a28" roughness={0.6} metalness={0.15} />
+      </mesh>
+      <mesh position={[0, 2.16, 0]}>
+        <cylinderGeometry args={[0.07, 0.085, 0.1, 24]} />
+        <meshStandardMaterial color="#242322" roughness={0.55} metalness={0.15} />
+      </mesh>
+      <mesh position={[0, 2.255, 0]} scale={[1, 0.5, 1]}>
+        <sphereGeometry args={[0.115, 24, 16]} />
+        <meshStandardMaterial color="#ece3d5" roughness={0.5} metalness={0.05} />
+      </mesh>
+      <mesh position={[0, 2.245, 0.1]}>
+        <boxGeometry args={[0.035, 0.03, 0.06]} />
+        <meshStandardMaterial color="#141312" roughness={0.5} metalness={0.1} />
+      </mesh>
+    </group>
   );
 }
 
@@ -100,9 +118,9 @@ function Bottle({ triggerEl }: { triggerEl: HTMLDivElement }) {
     // sprays forward, it doesn't puff out in every direction at once.
     const mistSeeds = mistSprites.map(() => {
       const spread = (Math.random() - 0.5) * 0.85;
-      const drop = (Math.random() - 0.5) * 0.3 - 0.06;
+      const drop = 2.245 + (Math.random() - 0.5) * 0.3 - 0.1;
       const forward = 0.45 + Math.random() * 0.6;
-      return { x: spread, y: drop, z: 0.16 + forward };
+      return { x: spread, y: drop, z: 0.13 + forward };
     });
     const mistSizes = mistSprites.map((_, i) =>
       isHazeParticle(i) ? 0.15 + Math.random() * 0.06 : 0.045 + Math.random() * 0.05
@@ -116,7 +134,7 @@ function Bottle({ triggerEl }: { triggerEl: HTMLDivElement }) {
     // capLiftRef/capTiltRef keep their JSX rest positions/rotations — do
     // NOT gsap.set those here, that would stomp the values React set.
     mistSprites.forEach((m) => {
-      m.position.set(0, 2.12, 0.16);
+      m.position.set(0, 2.245, 0.13);
       m.scale.set(0.001, 0.001, 1);
       (m.material as THREE.SpriteMaterial).opacity = 0;
     });
@@ -245,7 +263,7 @@ function Bottle({ triggerEl }: { triggerEl: HTMLDivElement }) {
         <meshBasicMaterial map={labelTexture} toneMapped={false} side={THREE.DoubleSide} />
       </mesh>
 
-      <Nozzle />
+      <SprayActuator />
 
       {/* cap — capLiftRef sits at the bottle's neck height and only ever
           translates; capTiltRef is nested inside it at the cap's own base
