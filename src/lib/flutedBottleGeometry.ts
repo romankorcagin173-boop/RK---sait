@@ -77,3 +77,60 @@ export function createFlutedBottleGeometry({
   geometry.computeVertexNormals();
   return geometry;
 }
+
+interface CurvedLabelOptions {
+  /** distance from the bottle's vertical axis — should clear the ribs */
+  radius: number;
+  /** total angular width of the label, in radians */
+  arcAngle: number;
+  height: number;
+  segments?: number;
+}
+
+/**
+ * A label plaque as a genuine curved strip wrapped around the bottle's
+ * vertical axis (centered on the front, theta = PI/2, matching the same
+ * cos/sin convention as createFlutedBottleGeometry) instead of a flat
+ * plane — a flat plane held close enough to touch the glass at its center
+ * pulls away from the surface at its left/right edges since the bottle
+ * curves out from under it.
+ */
+export function createCurvedLabelGeometry({
+  radius,
+  arcAngle,
+  height,
+  segments = 20,
+}: CurvedLabelOptions): THREE.BufferGeometry {
+  const positions: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+
+  const thetaStart = Math.PI / 2 - arcAngle / 2;
+  const rows = [-height / 2, height / 2];
+
+  rows.forEach((y, rowIndex) => {
+    for (let seg = 0; seg <= segments; seg++) {
+      const t = seg / segments;
+      const theta = thetaStart + t * arcAngle;
+      positions.push(Math.cos(theta) * radius, y, Math.sin(theta) * radius);
+      // theta increasing sweeps screen-right to screen-left (camera looks
+      // down -z), so u is flipped to keep the label right-reading.
+      uvs.push(1 - t, rowIndex);
+    }
+  });
+
+  for (let seg = 0; seg < segments; seg++) {
+    const a = seg;
+    const b = a + (segments + 1);
+    const c = a + 1;
+    const d = b + 1;
+    indices.push(a, b, c, c, b, d);
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
