@@ -23,7 +23,7 @@ export function AtomizerScene() {
 
       gsap.set(capRef.current, { y: 0, rotate: 0 });
       gsap.set(mistDots, { opacity: 0, scale: 0.2 });
-      gsap.set(bottleRef.current, { y: 10, scale: 0.97 });
+      gsap.set(bottleRef.current, { y: 12, scale: 0.96, opacity: 0 });
       gsap.set(taglineRef.current, { opacity: 0, y: 18 });
 
       const tl = gsap.timeline({
@@ -41,32 +41,44 @@ export function AtomizerScene() {
         },
       });
 
-      // Phase 1 — the whole bottle settles in, cap lifts and tilts off.
-      tl.to(bottleRef.current, { y: 0, scale: 1, duration: 0.2, ease: "power2.out" }, 0)
-        .to(capRef.current, { y: -58, rotate: -10, duration: 0.3, ease: "power3.inOut" }, 0.12)
-        // Phase 2 — a fine mist bursts from the nozzle in a soft cone.
+      // Phase 1 — the bottle fades/settles in.
+      tl.to(bottleRef.current, { y: 0, scale: 1, opacity: 1, duration: 0.2, ease: "power2.out" }, 0)
+        // Phase 2 — the cap lifts straight up and tips slightly, as if unscrewed.
+        .to(capRef.current, { y: -64, rotate: -12, duration: 0.3, ease: "power3.inOut" }, 0.16)
+        // Phase 3 — a fine mist bursts from the nozzle in a soft believable cone.
         .to(
           mistDots,
           {
             opacity: 1,
             scale: 1,
-            duration: 0.36,
+            duration: 0.32,
             ease: "power1.out",
-            stagger: { each: 0.045, from: "center" },
+            stagger: { each: 0.04, from: "center" },
           },
-          0.34
+          0.38
         )
         .to(
           mistDots,
           {
             opacity: 0,
-            y: "-=70",
-            x: (i) => (i % 2 === 0 ? "+=26" : "-=26"),
-            duration: 0.4,
+            y: "-=64",
+            x: (i) => (i % 2 === 0 ? "+=22" : "-=22"),
+            duration: 0.38,
             ease: "power1.in",
-            stagger: { each: 0.045, from: "center" },
+            stagger: { each: 0.04, from: "center" },
           },
-          0.5
+          0.54
+        )
+        // Phase 4 — a second, lighter puff for a believable double-spritz.
+        .to(
+          mistDots,
+          { opacity: 0.9, scale: 0.85, duration: 0.05 },
+          0.66
+        )
+        .to(
+          mistDots,
+          { opacity: 0, y: "-=40", duration: 0.3, ease: "power1.in", stagger: { each: 0.03, from: "center" } },
+          0.68
         )
         .to(taglineRef.current, { opacity: 1, y: 0, duration: 0.22 }, 0.82);
     }, sectionRef);
@@ -84,27 +96,27 @@ export function AtomizerScene() {
       <div
         ref={bottleRef}
         className="relative z-[60] flex items-end justify-center"
-        style={{ perspective: "1300px", height: "min(58vh, 420px)" }}
+        style={{ perspective: "1400px", height: "min(64vh, 480px)" }}
       >
         {/* contact shadow */}
         <div
           ref={shadowRef}
-          className="absolute bottom-[6%] h-5 w-28 rounded-full bg-black/50 blur-lg"
+          className="absolute bottom-[3%] h-5 w-32 rounded-full bg-black/55 blur-lg"
         />
 
         {/* mist cone */}
         <div
           ref={mistWrapRef}
-          className="pointer-events-none absolute left-1/2 flex -translate-x-1/2"
-          style={{ top: "6%" }}
+          className="pointer-events-none absolute left-1/2 z-30 flex -translate-x-1/2"
+          style={{ top: "3%" }}
         >
           {Array.from({ length: 9 }).map((_, i) => {
             const spread = (i - 4) * 11;
-            const size = 10 + Math.abs(i - 4) * 3;
+            const size = 9 + Math.abs(i - 4) * 3;
             return (
               <div
                 key={i}
-                className="mist-dot absolute rounded-full bg-paper/20 blur-[2px]"
+                className="mist-dot absolute rounded-full bg-paper/25 blur-[2px]"
                 style={{
                   width: size,
                   height: size,
@@ -118,38 +130,86 @@ export function AtomizerScene() {
 
         {/* nozzle spout */}
         <div
-          className="absolute z-10 h-2 w-7 rounded-full bg-red"
-          style={{ bottom: "56%", left: "50%", transform: "translateX(-50%)" }}
+          className="absolute z-20 h-2 w-8 rounded-full bg-red"
+          style={{ bottom: "68%", left: "50%", transform: "translateX(-50%)" }}
         />
 
-        {/* pump actuator + cap */}
+        {/* cap */}
         <div
           ref={capRef}
-          className="absolute z-20 rounded-t-2xl rounded-b-md border hairline bg-charcoal-soft shadow-lg"
-          style={{ width: 40, height: 64, bottom: "44%", left: "50%", transform: "translateX(-50%)" }}
+          className="absolute z-20 overflow-hidden rounded-t-[10px] rounded-b-[4px] border border-black/40"
+          style={{
+            width: 46,
+            height: 78,
+            bottom: "54%",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background:
+              "repeating-linear-gradient(90deg, rgba(255,255,255,0.14) 0px, rgba(255,255,255,0.14) 2px, rgba(0,0,0,0.28) 2px, rgba(0,0,0,0.28) 6px), linear-gradient(180deg, #3a3936, #232220)",
+            boxShadow: "0 18px 26px rgba(0,0,0,0.5)",
+          }}
         >
-          <div className="absolute inset-x-0 top-2 mx-auto h-px w-6 bg-line-strong" />
+          <div className="absolute inset-x-0 top-0 h-1.5 bg-black/30" />
+          <div className="absolute inset-x-0 bottom-2 h-[3px] bg-red/80" />
         </div>
 
         {/* neck */}
         <div
-          className="absolute z-[5] rounded-sm border hairline bg-charcoal-soft"
-          style={{ width: 18, height: 20, bottom: "42%", left: "50%", transform: "translateX(-50%)" }}
+          className="absolute z-10 rounded-sm border border-black/30 bg-charcoal-soft"
+          style={{ width: 18, height: 22, bottom: "51%", left: "50%", transform: "translateX(-50%)" }}
         />
 
-        {/* bottle shoulders + body */}
+        {/* shoulder (tapered) */}
         <div
-          className="relative z-0 overflow-hidden rounded-t-[2.5rem] rounded-b-xl border hairline bg-charcoal-soft"
-          style={{ width: 168, height: "44%" }}
-        >
-          {/* liquid fill */}
-          <div className="absolute inset-x-0 bottom-0 h-[62%] bg-gradient-to-t from-red/35 to-red/10" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(243,241,236,0.08),transparent_55%)]" />
+          className="absolute z-[6]"
+          style={{
+            bottom: "44%",
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: 0,
+            height: 0,
+            borderLeft: "84px solid transparent",
+            borderRight: "84px solid transparent",
+            borderBottom: "40px solid var(--color-charcoal-soft)",
+            opacity: 0.96,
+          }}
+        />
+        <div
+          className="absolute z-[5] overflow-hidden rounded-t-[10px]"
+          style={{
+            width: 168,
+            height: 46,
+            bottom: "44%",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background:
+              "repeating-linear-gradient(90deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 3px, rgba(0,0,0,0.14) 3px, rgba(0,0,0,0.14) 9px), linear-gradient(180deg, #2c2b28, #26221f)",
+          }}
+        />
 
-          {/* wordmark */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
-            <span className="font-display text-base tracking-[0.2em] text-paper/85">RK</span>
-            <span className="text-[10px] uppercase tracking-[0.35em] text-paper/50">Parfum</span>
+        {/* main ribbed body */}
+        <div
+          className="relative z-0 overflow-hidden rounded-b-lg border border-black/40"
+          style={{
+            width: 168,
+            height: "44%",
+            background:
+              "repeating-linear-gradient(90deg, rgba(255,255,255,0.07) 0px, rgba(255,255,255,0.07) 3px, rgba(0,0,0,0.16) 3px, rgba(0,0,0,0.16) 9px), linear-gradient(180deg, #201f1d 0%, #241a19 55%, #3a1211 100%)",
+            boxShadow: "inset 0 0 26px rgba(0,0,0,0.5)",
+          }}
+        >
+          {/* liquid glow */}
+          <div className="absolute inset-x-0 bottom-0 h-[58%] bg-gradient-to-t from-red/40 via-red/15 to-transparent" />
+
+          {/* label plaque — the actual RK Private Edition card design */}
+          <div className="absolute left-1/2 top-1/2 w-[76%] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[3px] border border-line-strong shadow-[0_6px_14px_rgba(0,0,0,0.45)]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/brand/rk-card-front.svg"
+              alt="RK Private Edition"
+              className="block w-full"
+              style={{ aspectRatio: "1.6" }}
+            />
           </div>
         </div>
       </div>
