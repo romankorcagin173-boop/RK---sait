@@ -81,17 +81,34 @@ create table if not exists public.reviews (
 create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
   order_number text not null unique,
-  user_id uuid not null references public.profiles(id),
+  -- nullable: an order placed through the Telegram shop bot has no
+  -- website account, only a telegram_chat_id (see orders_owner_check below)
+  user_id uuid references public.profiles(id),
   items jsonb not null,
   total numeric(10, 2) not null,
   contact_name text not null,
   contact_phone text,
   contact_telegram text,
-  contact_email text not null,
+  -- nullable for the same reason — the bot doesn't collect an email
+  contact_email text,
   comment text,
   status order_status not null default 'new',
+  -- 'site' (web checkout) or 'telegram' (shop bot)
+  source text not null default 'site',
+  telegram_chat_id bigint,
+  telegram_username text,
   created_at timestamptz not null default now()
 );
+
+alter table public.orders
+  drop constraint if exists orders_source_check;
+alter table public.orders
+  add constraint orders_source_check check (source in ('site', 'telegram'));
+
+alter table public.orders
+  drop constraint if exists orders_owner_check;
+alter table public.orders
+  add constraint orders_owner_check check (user_id is not null or telegram_chat_id is not null);
 
 -- ----------------------------------------------------------------------------
 -- site_settings — small key/value store editable from the admin panel

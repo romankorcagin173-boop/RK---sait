@@ -53,18 +53,23 @@ export interface OrderItem {
   category: ProductCategory;
 }
 
+export type OrderSource = "site" | "telegram";
+
 export interface OrderRow {
   id: string;
   order_number: string;
-  user_id: string;
+  user_id: string | null;
   items: OrderItem[];
   total: number;
   contact_name: string;
   contact_phone: string | null;
   contact_telegram: string | null;
-  contact_email: string;
+  contact_email: string | null;
   comment: string | null;
   status: OrderStatus;
+  source: OrderSource;
+  telegram_chat_id: number | null;
+  telegram_username: string | null;
   created_at: string;
 }
 

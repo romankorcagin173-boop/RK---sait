@@ -29,7 +29,14 @@ export function OrdersTable({ initialOrders }: { initialOrders: OrderRow[] }) {
         <div key={order.id} className="rounded-xl border hairline bg-charcoal p-5">
           <div className="flex flex-wrap items-start justify-between gap-4 mb-3">
             <div>
-              <div className="text-paper font-medium">№{order.order_number}</div>
+              <div className="flex items-center gap-2">
+                <span className="text-paper font-medium">№{order.order_number}</span>
+                {order.source === "telegram" && (
+                  <span className="rounded-full bg-red/15 px-2 py-0.5 text-[10px] uppercase tracking-[0.08em] text-red-bright">
+                    Telegram
+                  </span>
+                )}
+              </div>
               <div className="text-xs text-ash-soft">{formatDate(order.created_at)}</div>
             </div>
             <select
@@ -64,7 +71,7 @@ export function OrdersTable({ initialOrders }: { initialOrders: OrderRow[] }) {
               <div>{order.contact_name}</div>
               {order.contact_phone && <div>{order.contact_phone}</div>}
               {order.contact_telegram && <div>@{order.contact_telegram}</div>}
-              <div>{order.contact_email}</div>
+              {order.contact_email && <div>{order.contact_email}</div>}
               {order.comment && <div className="mt-2 text-ash-soft">«{order.comment}»</div>}
             </div>
           </div>
