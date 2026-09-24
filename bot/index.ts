@@ -142,7 +142,16 @@ async function cartLines(cart: SessionData["cart"]): Promise<{ text: string; tot
     const subtotal = p.price * c.quantity;
     total += subtotal;
     rows.push(`${p.name} × ${c.quantity} — ${formatPrice(subtotal, p.currency)}`);
-    items.push({ product_id: p.id, name: p.name, price: p.price, quantity: c.quantity, category: p.category });
+    // The bot doesn't offer volume-option selection (that's a website-only
+    // flow for now) — bot orders always buy at the product's flat price.
+    items.push({
+      product_id: p.id,
+      name: p.name,
+      price: p.price,
+      quantity: c.quantity,
+      category: p.category,
+      volume_label: null,
+    });
   }
 
   const text = rows.length

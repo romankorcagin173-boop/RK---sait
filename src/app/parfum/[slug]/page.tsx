@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getProductBySlug, getReviews } from "@/lib/products";
-import { formatPrice } from "@/lib/format";
 import { ProductGallery } from "@/components/products/ProductGallery";
 import { RemainingGauge } from "@/components/products/RemainingGauge";
 import { AddToCartButton } from "@/components/products/AddToCartButton";
@@ -32,10 +31,6 @@ export default async function ParfumDetailPage({
           <div>
             <h1 className="font-display text-3xl sm:text-4xl text-paper">{product.name}</h1>
             <p className="mt-3 text-ash leading-relaxed">{product.short_description}</p>
-          </div>
-
-          <div className="text-2xl text-paper font-medium">
-            {formatPrice(product.price, product.currency)}
           </div>
 
           {product.volume_ml != null && product.remaining_ml != null && (

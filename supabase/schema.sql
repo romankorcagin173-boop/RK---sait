@@ -53,6 +53,10 @@ create table if not exists public.products (
   volume_ml numeric(6, 1),
   remaining_ml numeric(6, 1),
   aroma_notes text,
+  -- parfum-only: purchase options like [{"ml":5,"price":2200},{"ml":null,"price":12000}]
+  -- ("ml": null = the whole bottle) — empty array means no volume choice,
+  -- the product just sells at the flat `price` column above.
+  volume_options jsonb not null default '[]',
   -- 3d-print-only fields
   material text,
   dimensions text,
@@ -120,7 +124,7 @@ create table if not exists public.site_settings (
 
 insert into public.site_settings (key, value) values
   ('brand_description', '"RK — private edition. Приватная марка на стыке парфюмерии, технологий и 3D-печати. Каждый продукт выпускается ограниченным тиражом для тех, кто выбирает вещи не для всех."'),
-  ('contacts', '{"email": "romankorcagin173@gmail.com", "telegram": "", "phone": "", "instagram": ""}')
+  ('contacts', '{"email": "romankorcagin173@gmail.com", "telegram": "", "phone": "+7 952 112-09-79", "instagram": ""}')
 on conflict (key) do nothing;
 
 -- ----------------------------------------------------------------------------
@@ -282,6 +286,10 @@ create policy "orders_insert_own" on public.orders
 drop policy if exists "orders_update_admin" on public.orders;
 create policy "orders_update_admin" on public.orders
   for update using (public.is_admin());
+
+drop policy if exists "orders_delete_admin" on public.orders;
+create policy "orders_delete_admin" on public.orders
+  for delete using (public.is_admin());
 
 -- site_settings ------------------------------------------------------------
 drop policy if exists "site_settings_select_public" on public.site_settings;

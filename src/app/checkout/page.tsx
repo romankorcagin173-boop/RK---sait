@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/Button";
 
 interface OrderResult {
   orderNumber: string;
-  items: { name: string; price: number; quantity: number }[];
+  items: { name: string; price: number; quantity: number; volume_label: string | null }[];
   total: number;
 }
 
@@ -68,7 +68,11 @@ export default function CheckoutPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+          items: items.map((i) => ({
+            productId: i.productId,
+            quantity: i.quantity,
+            variantMl: i.variantMl,
+          })),
           contactName: form.name,
           contactPhone: form.phone || undefined,
           contactTelegram: form.telegram || undefined,
@@ -104,7 +108,8 @@ export default function CheckoutPage() {
             {result.items.map((i, idx) => (
               <div key={idx} className="flex justify-between text-sm text-ash py-1">
                 <span>
-                  {i.name} × {i.quantity}
+                  {i.name}
+                  {i.volume_label ? ` (${i.volume_label})` : ""} × {i.quantity}
                 </span>
                 <span>{formatPrice(i.price * i.quantity)}</span>
               </div>
@@ -173,9 +178,13 @@ export default function CheckoutPage() {
         <div className="h-fit rounded-xl border hairline bg-charcoal p-6">
           <div className="flex flex-col gap-2 mb-4">
             {items.map((item) => (
-              <div key={item.productId} className="flex justify-between text-sm text-ash">
+              <div
+                key={`${item.productId}::${item.variantMl ?? ""}`}
+                className="flex justify-between text-sm text-ash"
+              >
                 <span>
-                  {item.name} × {item.quantity}
+                  {item.name}
+                  {item.volumeLabel ? ` (${item.volumeLabel})` : ""} × {item.quantity}
                 </span>
                 <span>{formatPrice(item.price * item.quantity)}</span>
               </div>

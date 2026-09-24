@@ -12,6 +12,12 @@ export interface ProfileRow {
   created_at: string;
 }
 
+export interface VolumeOption {
+  /** null = the whole bottle, otherwise a decant size in millilitres */
+  ml: number | null;
+  price: number;
+}
+
 export interface ProductRow {
   id: string;
   category: ProductCategory;
@@ -27,6 +33,10 @@ export interface ProductRow {
   volume_ml: number | null;
   remaining_ml: number | null;
   aroma_notes: string | null;
+  // parfum-only: purchase options with their own price (e.g. 3 мл / 5 мл /
+  // 10 мл / the whole bottle) — empty means the product just sells at its
+  // flat `price` above with no volume choice.
+  volume_options: VolumeOption[];
   material: string | null;
   dimensions: string | null;
   print_info: string | null;
@@ -51,6 +61,9 @@ export interface OrderItem {
   price: number;
   quantity: number;
   category: ProductCategory;
+  // Which volume option was purchased (e.g. "5 мл", "Весь флакон"), or
+  // null when the product has no volume options and sold at its flat price.
+  volume_label: string | null;
 }
 
 export type OrderSource = "site" | "telegram";

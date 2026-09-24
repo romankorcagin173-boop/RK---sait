@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatDate, formatPrice } from "@/lib/format";
 import type { OrderRow, OrderStatus } from "@/lib/database.types";
@@ -22,6 +23,17 @@ export function OrdersTable({ initialOrders }: { initialOrders: OrderRow[] }) {
     await supabase.from("orders").update({ status }).eq("id", id);
   }
 
+  async function deleteOrder(id: string, orderNumber: string) {
+    if (!confirm(`Удалить заказ №${orderNumber} безвозвратно?`)) return;
+    const previous = orders;
+    setOrders((list) => list.filter((o) => o.id !== id));
+    const { error } = await supabase.from("orders").delete().eq("id", id);
+    if (error) {
+      setOrders(previous);
+      alert("Не удалось удалить заказ.");
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4">
       {orders.length === 0 && <p className="text-ash">Заказов пока нет.</p>}
@@ -39,17 +51,27 @@ export function OrdersTable({ initialOrders }: { initialOrders: OrderRow[] }) {
               </div>
               <div className="text-xs text-ash-soft">{formatDate(order.created_at)}</div>
             </div>
-            <select
-              value={order.status}
-              onChange={(e) => updateStatus(order.id, e.target.value as OrderStatus)}
-              className="rounded-lg border hairline bg-ink-soft px-3 py-1.5 text-xs uppercase tracking-[0.08em] text-paper"
-            >
-              {STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {STATUS_LABEL[s]}
-                </option>
-              ))}
-            </select>
+            <div className="flex items-center gap-2">
+              <select
+                value={order.status}
+                onChange={(e) => updateStatus(order.id, e.target.value as OrderStatus)}
+                className="rounded-lg border hairline bg-ink-soft px-3 py-1.5 text-xs uppercase tracking-[0.08em] text-paper"
+              >
+                {STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {STATUS_LABEL[s]}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => deleteOrder(order.id, order.order_number)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg border hairline text-ash hover:text-red-bright transition-colors"
+                aria-label="Удалить заказ"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -57,7 +79,8 @@ export function OrdersTable({ initialOrders }: { initialOrders: OrderRow[] }) {
               {order.items.map((item, idx) => (
                 <div key={idx} className="flex justify-between">
                   <span>
-                    {item.name} × {item.quantity}
+                    {item.name}
+                    {item.volume_label ? ` (${item.volume_label})` : ""} × {item.quantity}
                   </span>
                   <span>{formatPrice(item.price * item.quantity)}</span>
                 </div>

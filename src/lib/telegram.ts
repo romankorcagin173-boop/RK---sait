@@ -30,7 +30,10 @@ export async function notifyNewOrder(params: NotifyOrderParams) {
   }
 
   const itemsText = params.items
-    .map((i) => `• ${i.name} × ${i.quantity} — ${formatPrice(i.price * i.quantity)}`)
+    .map(
+      (i) =>
+        `• ${i.name}${i.volume_label ? ` (${i.volume_label})` : ""} × ${i.quantity} — ${formatPrice(i.price * i.quantity)}`
+    )
     .join("\n");
 
   const contactLines = [

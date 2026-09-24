@@ -32,6 +32,11 @@ Supabase — бесплатный (на старте) облачный Postgres 
    скопируйте всё содержимое, вставьте в SQL Editor и нажмите **Run**.
    Это создаст все таблицы, политики безопасности (RLS), функции входа по логину и бакеты
    для фото товаров/отзывов.
+   **Если у вас уже был настроен этот проект раньше** (база не создаётся с нуля) — `schema.sql`
+   не добавит новые столбцы/политики в уже существующие таблицы сам по себе, поэтому выполните
+   ещё и файлы `supabase/migration_telegram_bot.sql` и
+   `supabase/migration_volume_options_and_order_delete.sql` (безопасно выполнять в любом порядке
+   и повторно).
 4. (Опционально, для тестовых товаров) откройте
    [`supabase/seed_demo_products.sql`](./supabase/seed_demo_products.sql), тоже вставьте в
    SQL Editor и выполните — появятся 3 тестовых парфюма и 3 тестовых 3D-объекта с
@@ -223,6 +228,7 @@ bot/                             Telegram-бот-магазин (npm run bot), �
 supabase/schema.sql             SQL-схема, RLS, функции, бакеты — выполнить один раз
 supabase/seed_demo_products.sql демо-товары (опционально)
 supabase/migration_telegram_bot.sql донастройка заказов под бота (только для старых проектов)
+supabase/migration_volume_options_and_order_delete.sql  варианты объёма + удаление заказов (старые проекты)
 public/brand/                   логотип и SVG-заглушки фото товаров
 ```
 

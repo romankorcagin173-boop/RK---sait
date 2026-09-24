@@ -38,7 +38,7 @@ export default function CartPage() {
         <div className="flex flex-col gap-4">
           {items.map((item) => (
             <div
-              key={item.productId}
+              key={`${item.productId}::${item.variantMl ?? ""}`}
               className="flex items-center gap-4 rounded-xl border hairline bg-charcoal p-4"
             >
               <div className="relative h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-ink-soft">
@@ -46,25 +46,26 @@ export default function CartPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-paper font-medium truncate">{item.name}</div>
+                {item.volumeLabel && <div className="text-xs text-ash-soft">{item.volumeLabel}</div>}
                 <div className="text-sm text-ash">{formatPrice(item.price)}</div>
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setQuantity(item.productId, item.quantity - 1)}
+                  onClick={() => setQuantity(item.productId, item.quantity - 1, item.variantMl)}
                   className="flex h-7 w-7 items-center justify-center rounded-full border hairline text-paper"
                 >
                   <Minus size={12} />
                 </button>
                 <span className="w-6 text-center text-paper">{item.quantity}</span>
                 <button
-                  onClick={() => setQuantity(item.productId, item.quantity + 1)}
+                  onClick={() => setQuantity(item.productId, item.quantity + 1, item.variantMl)}
                   className="flex h-7 w-7 items-center justify-center rounded-full border hairline text-paper"
                 >
                   <Plus size={12} />
                 </button>
               </div>
               <button
-                onClick={() => remove(item.productId)}
+                onClick={() => remove(item.productId, item.variantMl)}
                 className="text-ash hover:text-red-bright transition-colors"
                 aria-label="Удалить"
               >

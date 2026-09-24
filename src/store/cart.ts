@@ -6,6 +6,12 @@ import type { ProductCategory } from "@/lib/database.types";
 
 export interface CartItem {
   productId: string;
+  // undefined = product has no volume options (unchanged pre-variant
+  // behaviour); null = the "whole bottle" option; a number = decant size
+  // in ml. Together with productId this forms the line's identity, so the
+  // same product bought in two different volumes is two separate lines.
+  variantMl?: number | null;
+  volumeLabel?: string;
   slug: string;
   name: string;
   price: number;
@@ -14,11 +20,15 @@ export interface CartItem {
   quantity: number;
 }
 
+function lineKey(item: Pick<CartItem, "productId" | "variantMl">) {
+  return `${item.productId}::${item.variantMl === undefined ? "" : String(item.variantMl)}`;
+}
+
 interface CartState {
   items: CartItem[];
   add: (item: Omit<CartItem, "quantity">, quantity?: number) => void;
-  remove: (productId: string) => void;
-  setQuantity: (productId: string, quantity: number) => void;
+  remove: (productId: string, variantMl?: number | null) => void;
+  setQuantity: (productId: string, quantity: number, variantMl?: number | null) => void;
   clear: () => void;
   total: () => number;
   count: () => number;
@@ -30,27 +40,32 @@ export const useCartStore = create<CartState>()(
       items: [],
       add: (item, quantity = 1) => {
         set((state) => {
-          const existing = state.items.find((i) => i.productId === item.productId);
+          const key = lineKey(item);
+          const existing = state.items.find((i) => lineKey(i) === key);
           if (existing) {
             return {
               items: state.items.map((i) =>
-                i.productId === item.productId
-                  ? { ...i, quantity: i.quantity + quantity }
-                  : i
+                lineKey(i) === key ? { ...i, quantity: i.quantity + quantity } : i
               ),
             };
           }
           return { items: [...state.items, { ...item, quantity }] };
         });
       },
-      remove: (productId) =>
-        set((state) => ({ items: state.items.filter((i) => i.productId !== productId) })),
-      setQuantity: (productId, quantity) =>
+      remove: (productId, variantMl) =>
         set((state) => ({
-          items: quantity <= 0
-            ? state.items.filter((i) => i.productId !== productId)
-            : state.items.map((i) => (i.productId === productId ? { ...i, quantity } : i)),
+          items: state.items.filter((i) => lineKey(i) !== lineKey({ productId, variantMl })),
         })),
+      setQuantity: (productId, quantity, variantMl) =>
+        set((state) => {
+          const key = lineKey({ productId, variantMl });
+          return {
+            items:
+              quantity <= 0
+                ? state.items.filter((i) => lineKey(i) !== key)
+                : state.items.map((i) => (lineKey(i) === key ? { ...i, quantity } : i)),
+          };
+        }),
       clear: () => set({ items: [] }),
       total: () => get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),
       count: () => get().items.reduce((sum, i) => sum + i.quantity, 0),

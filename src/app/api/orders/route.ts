@@ -2,10 +2,14 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateOrderNumber } from "@/lib/order-number";
 import { notifyNewOrder } from "@/lib/telegram";
-import type { OrderItem } from "@/lib/database.types";
+import type { OrderItem, VolumeOption } from "@/lib/database.types";
 
 interface RequestBody {
-  items: { productId: string; quantity: number }[];
+  // variantMl: undefined = no volume option chosen (flat price); null = the
+  // whole-bottle option; a number = a decant size — must match one of the
+  // product's own volume_options, checked server-side below rather than
+  // trusting whatever price the client had cached for it.
+  items: { productId: string; quantity: number; variantMl?: number | null }[];
   contactName: string;
   contactPhone?: string;
   contactTelegram?: string;
@@ -57,23 +61,47 @@ export async function POST(request: Request) {
     const productIds = body.items.map((i) => i.productId);
     const { data: products, error: productsError } = await supabase
       .from("products")
-      .select("id, name, price, category")
-      .in("id", productIds);
+      .select("id, name, price, category, volume_options")
+      .in("id", productIds)
+      .returns<
+        { id: string; name: string; price: number; category: OrderItem["category"]; volume_options: VolumeOption[] }[]
+      >();
 
     if (productsError || !products || products.length !== productIds.length) {
       return NextResponse.json({ error: "Часть товаров недоступна." }, { status: 400 });
     }
 
-    const items: OrderItem[] = body.items.map((requested) => {
-      const product = products.find((p) => p.id === requested.productId)!;
-      return {
-        product_id: product.id,
-        name: product.name,
-        price: product.price,
-        quantity: Math.max(1, Math.min(20, requested.quantity)),
-        category: product.category,
-      };
-    });
+    let items: OrderItem[];
+    try {
+      items = body.items.map((requested) => {
+        const product = products.find((p) => p.id === requested.productId)!;
+        let price = product.price;
+        let volumeLabel: string | null = null;
+
+        if (requested.variantMl !== undefined) {
+          const option = product.volume_options.find((o) => o.ml === requested.variantMl);
+          if (!option) {
+            throw new Error(`Вариант объёма недоступен для «${product.name}».`);
+          }
+          price = option.price;
+          volumeLabel = option.ml == null ? "Весь флакон" : `${option.ml} мл`;
+        }
+
+        return {
+          product_id: product.id,
+          name: product.name,
+          price,
+          quantity: Math.max(1, Math.min(20, requested.quantity)),
+          category: product.category,
+          volume_label: volumeLabel,
+        };
+      });
+    } catch (err) {
+      return NextResponse.json(
+        { error: err instanceof Error ? err.message : "Часть товаров недоступна." },
+        { status: 400 }
+      );
+    }
 
     const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
     const orderNumber = generateOrderNumber();

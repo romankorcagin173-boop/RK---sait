@@ -7,7 +7,7 @@ import { X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Input, Textarea } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
-import type { ProductCategory, ProductRow } from "@/lib/database.types";
+import type { ProductCategory, ProductRow, VolumeOption } from "@/lib/database.types";
 
 function slugify(value: string) {
   return value
@@ -35,6 +35,12 @@ export function ProductForm({ product }: { product?: ProductRow }) {
   const [volumeMl, setVolumeMl] = useState(product?.volume_ml?.toString() ?? "");
   const [remainingMl, setRemainingMl] = useState(product?.remaining_ml?.toString() ?? "");
   const [aromaNotes, setAromaNotes] = useState(product?.aroma_notes ?? "");
+  const [volumeOptions, setVolumeOptions] = useState<{ ml: string; price: string }[]>(
+    (product?.volume_options ?? []).map((o) => ({
+      ml: o.ml == null ? "" : String(o.ml),
+      price: String(o.price),
+    }))
+  );
 
   const [material, setMaterial] = useState(product?.material ?? "");
   const [dimensions, setDimensions] = useState(product?.dimensions ?? "");
@@ -43,6 +49,7 @@ export function ProductForm({ product }: { product?: ProductRow }) {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
 
   async function handleUpload(files: FileList | null) {
     if (!files?.length) return;
@@ -51,7 +58,14 @@ export function ProductForm({ product }: { product?: ProductRow }) {
     try {
       const urls: string[] = [];
       for (const file of Array.from(files)) {
-        const path = `${category}/${slug || "draft"}/${Date.now()}-${file.name}`;
+        // The original filename is never used in the storage key: a name
+        // with Cyrillic characters, spaces, or symbols like # or % produces
+        // a public URL that silently fails to load as an <img src> (no
+        // upload error, the photo just never appears) — exactly the bug
+        // this caused. A random ASCII-only key sidesteps it entirely.
+        const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+        const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const path = `${category}/${slug || "draft"}/${unique}.${ext}`;
         const { error: uploadError } = await supabase.storage.from("product-images").upload(path, file);
         if (uploadError) throw uploadError;
         const { data } = supabase.storage.from("product-images").getPublicUrl(path);
@@ -84,6 +98,17 @@ export function ProductForm({ product }: { product?: ProductRow }) {
       volume_ml: category === "parfum" && volumeMl ? Number(volumeMl) : null,
       remaining_ml: category === "parfum" && remainingMl ? Number(remainingMl) : null,
       aroma_notes: category === "parfum" ? aromaNotes || null : null,
+      volume_options:
+        category === "parfum"
+          ? volumeOptions
+              .filter((o) => o.price.trim() !== "")
+              .map(
+                (o): VolumeOption => ({
+                  ml: o.ml.trim() === "" ? null : Number(o.ml),
+                  price: Number(o.price),
+                })
+              )
+          : [],
       material: category === "3d_print" ? material || null : null,
       dimensions: category === "3d_print" ? dimensions || null : null,
       print_info: category === "3d_print" ? printInfo || null : null,
@@ -184,6 +209,59 @@ export function ProductForm({ product }: { product?: ProductRow }) {
               onChange={(e) => setAromaNotes(e.target.value)}
             />
           </div>
+
+          <div className="sm:col-span-2">
+            <span className="text-xs uppercase tracking-[0.12em] text-ash mb-2 block">
+              Варианты объёма (необязательно)
+            </span>
+            <p className="text-xs text-ash-soft mb-3">
+              Если добавить хотя бы один вариант, покупатель на сайте будет выбирать объём — у
+              каждого варианта своя цена. Оставьте «мл» пустым для варианта «весь флакон». Если
+              не добавлять варианты, товар продаётся по цене выше без выбора объёма.
+            </p>
+            <div className="flex flex-col gap-2">
+              {volumeOptions.map((opt, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    placeholder="мл (пусто = весь флакон)"
+                    value={opt.ml}
+                    onChange={(e) =>
+                      setVolumeOptions((list) =>
+                        list.map((o, j) => (j === i ? { ...o, ml: e.target.value } : o))
+                      )
+                    }
+                    className="w-56 rounded-lg border hairline bg-ink-soft px-3 py-2 text-sm text-paper"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Цена, ₽"
+                    value={opt.price}
+                    onChange={(e) =>
+                      setVolumeOptions((list) =>
+                        list.map((o, j) => (j === i ? { ...o, price: e.target.value } : o))
+                      )
+                    }
+                    className="w-32 rounded-lg border hairline bg-ink-soft px-3 py-2 text-sm text-paper"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setVolumeOptions((list) => list.filter((_, j) => j !== i))}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border hairline text-ash hover:text-red-bright transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setVolumeOptions((list) => [...list, { ml: "", price: "" }])}
+                className="self-start rounded-full border hairline px-4 py-1.5 text-xs uppercase tracking-[0.1em] text-ash hover:text-paper transition-colors"
+              >
+                + Добавить вариант
+              </button>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="grid gap-5 sm:grid-cols-2">
@@ -206,7 +284,19 @@ export function ProductForm({ product }: { product?: ProductRow }) {
           <div className="mb-3 flex flex-wrap gap-2">
             {images.map((url) => (
               <div key={url} className="relative h-20 w-20 overflow-hidden rounded-lg border hairline">
-                <Image src={url} alt="" fill className="object-cover" />
+                {brokenImages[url] ? (
+                  <div className="flex h-full w-full items-center justify-center bg-ink-soft px-1 text-center text-[9px] text-red-bright">
+                    Не загрузилось
+                  </div>
+                ) : (
+                  <Image
+                    src={url}
+                    alt=""
+                    fill
+                    className="object-cover"
+                    onError={() => setBrokenImages((prev) => ({ ...prev, [url]: true }))}
+                  />
+                )}
                 <button
                   type="button"
                   onClick={() => setImages((prev) => prev.filter((u) => u !== url))}

@@ -62,3 +62,10 @@ insert into public.products (
   array['/brand/placeholders/print-3.svg'],
   true, 3, 'PETG (термостойкий)', '150 × 150 × 220 мм', 'Печать с поддержками по решётке, заполнение 20%, финальная шлифовка кромок.'
 );
+
+-- Demo of the per-volume pricing feature — a purchaser picks one of these
+-- instead of buying at the flat price above. Edit/remove from the admin
+-- panel like any other field.
+update public.products
+set volume_options = '[{"ml":3,"price":1200},{"ml":5,"price":1900},{"ml":10,"price":3400},{"ml":null,"price":18000}]'::jsonb
+where slug = 'rk-noir-01';
