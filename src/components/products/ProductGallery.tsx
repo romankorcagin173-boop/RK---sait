@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import clsx from "clsx";
 
 export function ProductGallery({ images, alt }: { images: string[]; alt: string }) {
@@ -11,7 +10,8 @@ export function ProductGallery({ images, alt }: { images: string[]; alt: string 
   return (
     <div className="flex flex-col gap-3">
       <div className="relative aspect-[3/4] overflow-hidden rounded-2xl border hairline bg-ink-soft">
-        {list[active] && <Image src={list[active]} alt={alt} fill className="object-cover" priority />}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        {list[active] && <img src={list[active]} alt={alt} className="absolute inset-0 h-full w-full object-cover" />}
       </div>
       {list.length > 1 && (
         <div className="flex gap-2">
@@ -24,7 +24,8 @@ export function ProductGallery({ images, alt }: { images: string[]; alt: string 
                 i === active ? "border-red" : "border-line hover:border-line-strong"
               )}
             >
-              <Image src={src} alt="" fill className="object-cover" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
             </button>
           ))}
         </div>

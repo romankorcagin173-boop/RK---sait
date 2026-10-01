@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Input, Textarea } from "@/components/ui/Field";
@@ -34,6 +33,7 @@ export function ProductForm({ product }: { product?: ProductRow }) {
 
   const [volumeMl, setVolumeMl] = useState(product?.volume_ml?.toString() ?? "");
   const [remainingMl, setRemainingMl] = useState(product?.remaining_ml?.toString() ?? "");
+  const [pricePerMl, setPricePerMl] = useState(product?.price_per_ml?.toString() ?? "");
   const [aromaNotes, setAromaNotes] = useState(product?.aroma_notes ?? "");
   const [volumeOptions, setVolumeOptions] = useState<{ ml: string; price: string }[]>(
     (product?.volume_options ?? []).map((o) => ({
@@ -97,6 +97,7 @@ export function ProductForm({ product }: { product?: ProductRow }) {
       sort_order: product?.sort_order ?? 0,
       volume_ml: category === "parfum" && volumeMl ? Number(volumeMl) : null,
       remaining_ml: category === "parfum" && remainingMl ? Number(remainingMl) : null,
+      price_per_ml: category === "parfum" && pricePerMl ? Number(pricePerMl) : null,
       aroma_notes: category === "parfum" ? aromaNotes || null : null,
       volume_options:
         category === "parfum"
@@ -201,6 +202,13 @@ export function ProductForm({ product }: { product?: ProductRow }) {
             value={remainingMl}
             onChange={(e) => setRemainingMl(e.target.value)}
           />
+          <Input
+            label="Цена за 1 мл, ₽ (для кнопки «Остаток флакона»)"
+            type="number"
+            value={pricePerMl}
+            onChange={(e) => setPricePerMl(e.target.value)}
+            hint="Заполните, чтобы на сайте появилась кнопка «купить остаток» с ценой остаток × цена за мл"
+          />
           <div className="sm:col-span-2">
             <Textarea
               label="Пирамида аромата"
@@ -289,11 +297,11 @@ export function ProductForm({ product }: { product?: ProductRow }) {
                     Не загрузилось
                   </div>
                 ) : (
-                  <Image
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
                     src={url}
                     alt=""
-                    fill
-                    className="object-cover"
+                    className="absolute inset-0 h-full w-full object-cover"
                     onError={() => setBrokenImages((prev) => ({ ...prev, [url]: true }))}
                   />
                 )}

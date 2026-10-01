@@ -7,9 +7,10 @@ import type { OrderItem, VolumeOption } from "@/lib/database.types";
 interface RequestBody {
   // variantMl: undefined = no volume option chosen (flat price); null = the
   // whole-bottle option; a number = a decant size — must match one of the
-  // product's own volume_options, checked server-side below rather than
-  // trusting whatever price the client had cached for it.
-  items: { productId: string; quantity: number; variantMl?: number | null }[];
+  // product's own volume_options; "remainder" = buy whatever is currently
+  // left (priced at remaining_ml × price_per_ml, re-read fresh here, never
+  // trusting whatever the client had cached).
+  items: { productId: string; quantity: number; variantMl?: number | null | "remainder" }[];
   contactName: string;
   contactPhone?: string;
   contactTelegram?: string;
@@ -61,10 +62,18 @@ export async function POST(request: Request) {
     const productIds = body.items.map((i) => i.productId);
     const { data: products, error: productsError } = await supabase
       .from("products")
-      .select("id, name, price, category, volume_options")
+      .select("id, name, price, category, volume_options, remaining_ml, price_per_ml")
       .in("id", productIds)
       .returns<
-        { id: string; name: string; price: number; category: OrderItem["category"]; volume_options: VolumeOption[] }[]
+        {
+          id: string;
+          name: string;
+          price: number;
+          category: OrderItem["category"];
+          volume_options: VolumeOption[];
+          remaining_ml: number | null;
+          price_per_ml: number | null;
+        }[]
       >();
 
     if (productsError || !products || products.length !== productIds.length) {
@@ -77,13 +86,26 @@ export async function POST(request: Request) {
         const product = products.find((p) => p.id === requested.productId)!;
         let price = product.price;
         let volumeLabel: string | null = null;
+        let volumeMl: number | null = null;
+        let quantity = Math.max(1, Math.min(20, requested.quantity));
 
-        if (requested.variantMl !== undefined) {
+        if (requested.variantMl === "remainder") {
+          if (!product.remaining_ml || !product.price_per_ml) {
+            throw new Error(`Остаток флакона недоступен для «${product.name}».`);
+          }
+          // Buying "the remainder" only makes sense once — quantity from
+          // the client is ignored for this variant.
+          quantity = 1;
+          volumeMl = product.remaining_ml;
+          price = product.remaining_ml * product.price_per_ml;
+          volumeLabel = `Остаток флакона (${product.remaining_ml} мл)`;
+        } else if (requested.variantMl !== undefined) {
           const option = product.volume_options.find((o) => o.ml === requested.variantMl);
           if (!option) {
             throw new Error(`Вариант объёма недоступен для «${product.name}».`);
           }
           price = option.price;
+          volumeMl = option.ml;
           volumeLabel = option.ml == null ? "Весь флакон" : `${option.ml} мл`;
         }
 
@@ -91,9 +113,10 @@ export async function POST(request: Request) {
           product_id: product.id,
           name: product.name,
           price,
-          quantity: Math.max(1, Math.min(20, requested.quantity)),
+          quantity,
           category: product.category,
           volume_label: volumeLabel,
+          volume_ml: volumeMl,
         };
       });
     } catch (err) {

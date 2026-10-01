@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { StarRatingDisplay } from "@/components/products/StarRating";
 import { ReviewForm } from "@/components/products/ReviewForm";
@@ -65,7 +64,8 @@ export function ReviewsSection({
               <div className="mt-3 flex gap-2 overflow-x-auto scrollbar-none">
                 {review.photos.map((url) => (
                   <div key={url} className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg">
-                    <Image src={url} alt="Фото отзыва" fill className="object-cover" />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt="Фото отзыва" className="absolute inset-0 h-full w-full object-cover" />
                   </div>
                 ))}
               </div>

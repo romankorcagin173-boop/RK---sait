@@ -57,6 +57,10 @@ create table if not exists public.products (
   -- ("ml": null = the whole bottle) — empty array means no volume choice,
   -- the product just sells at the flat `price` column above.
   volume_options jsonb not null default '[]',
+  -- parfum-only: price per 1 ml, used only to price the auto-generated
+  -- "buy the remainder" option (remaining_ml × price_per_ml) — unrelated
+  -- to volume_options, which carry their own fixed prices.
+  price_per_ml numeric(10, 2),
   -- 3d-print-only fields
   material text,
   dimensions text,
@@ -85,19 +89,19 @@ create table if not exists public.reviews (
 create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
   order_number text not null unique,
-  -- nullable: an order placed through the Telegram shop bot has no
-  -- website account, only a telegram_chat_id (see orders_owner_check below)
   user_id uuid references public.profiles(id),
   items jsonb not null,
   total numeric(10, 2) not null,
   contact_name text not null,
   contact_phone text,
   contact_telegram text,
-  -- nullable for the same reason — the bot doesn't collect an email
   contact_email text,
   comment text,
   status order_status not null default 'new',
-  -- 'site' (web checkout) or 'telegram' (shop bot)
+  -- true once a 'done' status has already applied its remaining_ml
+  -- deduction (see apply_order_fulfillment below) — guards against
+  -- double-deducting if an admin flips the status back and forth
+  fulfillment_applied boolean not null default false,
   source text not null default 'site',
   telegram_chat_id bigint,
   telegram_username text,
@@ -229,6 +233,55 @@ drop trigger if exists products_set_updated_at on public.products;
 create trigger products_set_updated_at
   before update on public.products
   for each row execute function public.set_updated_at();
+
+-- When an order's status becomes 'done', deduct the ml actually sold from
+-- each line item's product.remaining_ml (floored at 0). Runs once per
+-- order via fulfillment_applied, so toggling the status back and forth
+-- can't double-deduct. SECURITY DEFINER because the admin updating the
+-- order has no direct UPDATE grant on products (products_write_admin
+-- already covers admins too, but this keeps the privilege path explicit
+-- and independent of it).
+create or replace function public.apply_order_fulfillment()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  item jsonb;
+  v_product_id uuid;
+  v_quantity int;
+begin
+  if new.status = 'done' and not coalesce(old.fulfillment_applied, false) then
+    for item in select * from jsonb_array_elements(new.items)
+    loop
+      -- volume_label is only set when the buyer actually chose a volume
+      -- option (decant ml or the whole bottle) — items bought at the flat
+      -- price never touch remaining_ml.
+      if (item ->> 'volume_label') is not null then
+        v_product_id := (item ->> 'product_id')::uuid;
+        v_quantity := coalesce((item ->> 'quantity')::int, 1);
+        if (item -> 'volume_ml') = 'null'::jsonb then
+          -- "the whole bottle" was bought — nothing is left to decant
+          update public.products set remaining_ml = 0
+          where id = v_product_id and remaining_ml is not null;
+        else
+          update public.products
+          set remaining_ml = greatest(0, coalesce(remaining_ml, 0) - (item ->> 'volume_ml')::numeric * v_quantity)
+          where id = v_product_id;
+        end if;
+      end if;
+    end loop;
+    new.fulfillment_applied := true;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists orders_apply_fulfillment on public.orders;
+create trigger orders_apply_fulfillment
+  before update on public.orders
+  for each row execute function public.apply_order_fulfillment();
 
 -- ----------------------------------------------------------------------------
 -- Row Level Security

@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { useCartStore } from "@/store/cart";
@@ -42,7 +41,8 @@ export default function CartPage() {
               className="flex items-center gap-4 rounded-xl border hairline bg-charcoal p-4"
             >
               <div className="relative h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-ink-soft">
-                {item.image && <Image src={item.image} alt={item.name} fill className="object-cover" />}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {item.image && <img src={item.image} alt={item.name} className="absolute inset-0 h-full w-full object-cover" />}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-paper font-medium truncate">{item.name}</div>

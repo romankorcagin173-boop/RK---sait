@@ -37,6 +37,9 @@ export interface ProductRow {
   // 10 мл / the whole bottle) — empty means the product just sells at its
   // flat `price` above with no volume choice.
   volume_options: VolumeOption[];
+  // parfum-only: price per 1 ml, used to price the "buy the remainder"
+  // option (remaining_ml × price_per_ml). Independent of volume_options.
+  price_per_ml: number | null;
   material: string | null;
   dimensions: string | null;
   print_info: string | null;
@@ -61,9 +64,13 @@ export interface OrderItem {
   price: number;
   quantity: number;
   category: ProductCategory;
-  // Which volume option was purchased (e.g. "5 мл", "Весь флакон"), or
-  // null when the product has no volume options and sold at its flat price.
+  // Which volume option was purchased (e.g. "5 мл", "Остаток флакона (12 мл)",
+  // "Весь флакон"), or null when sold at the flat price with no variant.
   volume_label: string | null;
+  // The actual ml consumed — null both when no variant was chosen AND
+  // when "весь флакон" was chosen; disambiguated by volume_label above.
+  // Used server-side to deduct remaining_ml once an order is fulfilled.
+  volume_ml: number | null;
 }
 
 export type OrderSource = "site" | "telegram";
@@ -80,6 +87,7 @@ export interface OrderRow {
   contact_email: string | null;
   comment: string | null;
   status: OrderStatus;
+  fulfillment_applied: boolean;
   source: OrderSource;
   telegram_chat_id: number | null;
   telegram_username: string | null;

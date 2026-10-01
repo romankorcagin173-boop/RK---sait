@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { ProductRow } from "@/lib/database.types";
 import { formatPrice } from "@/lib/format";
@@ -11,12 +10,16 @@ export function ProductCard({ product }: { product: ProductRow }) {
     <div className="group flex flex-col overflow-hidden rounded-2xl border hairline bg-charcoal">
       <Link href={href} className="relative block aspect-[3/4] overflow-hidden bg-ink-soft">
         {product.images[0] && (
-          <Image
+          // Plain <img>, not next/image: Next's server-side image
+          // optimizer is a common source of photos that load fine when you
+          // open the URL directly but never render on the site itself
+          // (especially on a bare VPS without the full sharp toolchain) —
+          // not worth the risk for a catalog this size.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
             src={product.images[0]}
             alt={product.name}
-            fill
-            sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 100vw"
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         )}
       </Link>

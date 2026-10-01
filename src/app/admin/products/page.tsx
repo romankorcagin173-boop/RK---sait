@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { formatPrice } from "@/lib/format";
 import type { ProductRow } from "@/lib/database.types";
@@ -31,7 +30,8 @@ export default async function AdminProductsPage() {
             className="flex items-center gap-4 rounded-xl border hairline bg-charcoal p-4 hover:border-line-strong transition-colors"
           >
             <div className="relative h-16 w-14 shrink-0 overflow-hidden rounded-lg bg-ink-soft">
-              {p.images[0] && <Image src={p.images[0]} alt="" fill className="object-cover" />}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {p.images[0] && <img src={p.images[0]} alt="" className="absolute inset-0 h-full w-full object-cover" />}
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-paper font-medium truncate">{p.name}</div>

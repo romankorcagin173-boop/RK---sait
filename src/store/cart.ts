@@ -8,9 +8,10 @@ export interface CartItem {
   productId: string;
   // undefined = product has no volume options (unchanged pre-variant
   // behaviour); null = the "whole bottle" option; a number = decant size
-  // in ml. Together with productId this forms the line's identity, so the
-  // same product bought in two different volumes is two separate lines.
-  variantMl?: number | null;
+  // in ml; "remainder" = buy whatever's currently left. Together with
+  // productId this forms the line's identity, so the same product bought
+  // in two different volumes is two separate lines.
+  variantMl?: number | null | "remainder";
   volumeLabel?: string;
   slug: string;
   name: string;
@@ -27,8 +28,8 @@ function lineKey(item: Pick<CartItem, "productId" | "variantMl">) {
 interface CartState {
   items: CartItem[];
   add: (item: Omit<CartItem, "quantity">, quantity?: number) => void;
-  remove: (productId: string, variantMl?: number | null) => void;
-  setQuantity: (productId: string, quantity: number, variantMl?: number | null) => void;
+  remove: (productId: string, variantMl?: number | null | "remainder") => void;
+  setQuantity: (productId: string, quantity: number, variantMl?: number | null | "remainder") => void;
   clear: () => void;
   total: () => number;
   count: () => number;
