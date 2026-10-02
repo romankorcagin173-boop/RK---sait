@@ -22,6 +22,12 @@ export function ProductForm({ product }: { product?: ProductRow }) {
   const router = useRouter();
   const isEdit = Boolean(product);
 
+  // A stable ASCII id for the storage path, independent of the (often
+  // Cyrillic) slug — the slug can change, and Cyrillic path segments are
+  // the same class of bug as the Cyrillic-filename issue below: the public
+  // URL comes back but silently fails to load as an <img src>.
+  const [storageId] = useState(() => product?.id ?? crypto.randomUUID());
+
   const [category, setCategory] = useState<ProductCategory>(product?.category ?? "parfum");
   const [name, setName] = useState(product?.name ?? "");
   const [slug, setSlug] = useState(product?.slug ?? "");
@@ -65,7 +71,7 @@ export function ProductForm({ product }: { product?: ProductRow }) {
         // this caused. A random ASCII-only key sidesteps it entirely.
         const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
         const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        const path = `${category}/${slug || "draft"}/${unique}.${ext}`;
+        const path = `${category}/${storageId}/${unique}.${ext}`;
         const { error: uploadError } = await supabase.storage.from("product-images").upload(path, file);
         if (uploadError) throw uploadError;
         const { data } = supabase.storage.from("product-images").getPublicUrl(path);

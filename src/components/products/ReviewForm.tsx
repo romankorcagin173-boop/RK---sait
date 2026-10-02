@@ -44,7 +44,12 @@ export function ReviewForm({ productId, onSubmitted }: { productId: string; onSu
     try {
       const photoUrls: string[] = [];
       for (const file of files.slice(0, 5)) {
-        const path = `${authUser!.id}/${productId}/${Date.now()}-${file.name}`;
+        // Same bug as product-photo uploads: a Cyrillic or symbol-heavy
+        // filename produces a public URL that silently fails to load as
+        // an <img src>. A random ASCII-only key avoids it.
+        const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+        const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const path = `${authUser!.id}/${productId}/${unique}.${ext}`;
         const { error: uploadError } = await supabase.storage
           .from("review-photos")
           .upload(path, file);
