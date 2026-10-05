@@ -21,7 +21,14 @@ export async function Footer() {
           <div className="text-xs uppercase tracking-[0.2em] text-ash-soft mb-4">Каталог</div>
           <nav className="flex flex-col gap-2 text-sm text-paper">
             <Link href="/parfum" className="hover:text-red-bright transition-colors">RK — Parfum</Link>
-            <Link href="/pod-shade" className="hover:text-red-bright transition-colors">Studio Pod Shade</Link>
+            <a
+              href="https://podshade.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-red-bright transition-colors"
+            >
+              Studio Pod Shade
+            </a>
             <a
               href="https://memoryphone.online/ru"
               target="_blank"

@@ -10,11 +10,11 @@ const TABS = [
     external: false,
   },
   {
-    href: "/pod-shade",
+    href: "https://podshade.com/",
     icon: Waves,
     title: "Studio Pod Shade",
-    desc: "Новое направление бренда. Уже в разработке.",
-    external: false,
+    desc: "Отдельный проект бренда — переход на podshade.com",
+    external: true,
   },
   {
     href: "https://memoryphone.online/ru",

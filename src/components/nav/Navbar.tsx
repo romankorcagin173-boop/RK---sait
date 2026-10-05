@@ -9,7 +9,7 @@ import { useCartStore } from "@/store/cart";
 
 const NAV_LINKS = [
   { href: "/parfum", label: "RK — Parfum" },
-  { href: "/pod-shade", label: "Studio Pod Shade" },
+  { href: "https://podshade.com/", label: "Studio Pod Shade", external: true },
   { href: "https://memoryphone.online/ru", label: "MemoryPhone", external: true },
   { href: "/3d-print", label: "RK — 3D Print" },
 ];
