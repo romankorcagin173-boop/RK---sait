@@ -37,9 +37,6 @@ yarn-error.log*
 # vercel
 .vercel
 
-# presplit bot — local data store, never commit real order data
-/presplit-bot/data.json
-
 # typescript
 *.tsbuildinfo
 next-env.d.ts
