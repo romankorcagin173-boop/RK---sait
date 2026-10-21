@@ -2,19 +2,26 @@
 
 import { useEffect, useRef } from "react";
 
-interface Particle {
+interface Dot {
   x: number;
   y: number;
-  vx: number;
-  vy: number;
-  life: number;
-  maxLife: number;
-  size: number;
+  glow: number;
 }
 
-// A soft golden glow + light dust trail that follows the cursor — desktop
-// only (fine pointer), skipped for prefers-reduced-motion, pointer-events
-// none throughout so it never interferes with clicks or hover states.
+const SPACING = 36;
+const RADIUS = 140;
+const BASE_ALPHA = 0.045;
+const LIT_ALPHA = 0.85;
+const BASE_SIZE = 1;
+const LIT_SIZE = 2.2;
+// Gold, interpolated by alpha/size only — hue stays constant between the
+// barely-visible resting dots and the ones lit up near the cursor.
+const GOLD = "201, 162, 74";
+
+// A faint field of micro-dots sitting behind page content — mostly
+// invisible at rest, lighting up gold near the cursor and fading back out
+// as it moves away. Desktop/fine-pointer only, skipped for
+// prefers-reduced-motion, pointer-events none throughout.
 export function CursorGlow() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -32,22 +39,31 @@ export function CursorGlow() {
 
     let width = window.innerWidth;
     let height = window.innerHeight;
-    canvas.width = width;
-    canvas.height = height;
+    let dots: Dot[] = [];
+
+    function buildGrid() {
+      dots = [];
+      for (let y = SPACING / 2; y < height; y += SPACING) {
+        for (let x = SPACING / 2; x < width; x += SPACING) {
+          dots.push({ x, y, glow: 0 });
+        }
+      }
+    }
 
     function handleResize() {
       width = window.innerWidth;
       height = window.innerHeight;
       canvas!.width = width;
       canvas!.height = height;
+      buildGrid();
     }
+
+    canvas.width = width;
+    canvas.height = height;
+    buildGrid();
     window.addEventListener("resize", handleResize);
 
-    const pointer = { x: width / 2, y: height / 2, active: false };
-    const glow = { x: pointer.x, y: pointer.y };
-    let particles: Particle[] = [];
-    let lastSpawn = 0;
-
+    const pointer = { x: -9999, y: -9999, active: false };
     function handleMove(e: PointerEvent) {
       pointer.x = e.clientX;
       pointer.y = e.clientY;
@@ -60,52 +76,25 @@ export function CursorGlow() {
     window.addEventListener("pointerleave", handleLeave);
 
     let raf = 0;
-    function frame(time: number) {
-      glow.x += (pointer.x - glow.x) * 0.18;
-      glow.y += (pointer.y - glow.y) * 0.18;
-
+    function frame() {
       ctx!.clearRect(0, 0, width, height);
 
-      if (pointer.active) {
-        if (time - lastSpawn > 30) {
-          lastSpawn = time;
-          for (let i = 0; i < 2; i++) {
-            particles.push({
-              x: glow.x + (Math.random() - 0.5) * 10,
-              y: glow.y + (Math.random() - 0.5) * 10,
-              vx: (Math.random() - 0.5) * 0.6,
-              vy: (Math.random() - 0.5) * 0.6 - 0.2,
-              life: 0,
-              maxLife: 50 + Math.random() * 30,
-              size: 1.5 + Math.random() * 2.5,
-            });
+      for (const dot of dots) {
+        let target = 0;
+        if (pointer.active) {
+          const dx = dot.x - pointer.x;
+          const dy = dot.y - pointer.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < RADIUS) {
+            target = Math.pow(1 - dist / RADIUS, 1.6);
           }
         }
+        dot.glow += (target - dot.glow) * 0.15;
 
-        const radius = 110;
-        const gradient = ctx!.createRadialGradient(glow.x, glow.y, 0, glow.x, glow.y, radius);
-        gradient.addColorStop(0, "rgba(232, 197, 119, 0.18)");
-        gradient.addColorStop(1, "rgba(232, 197, 119, 0)");
-        ctx!.fillStyle = gradient;
-        ctx!.beginPath();
-        ctx!.arc(glow.x, glow.y, radius, 0, Math.PI * 2);
-        ctx!.fill();
-      }
-
-      particles = particles.filter((p) => p.life < p.maxLife);
-      for (const p of particles) {
-        p.x += p.vx;
-        p.y += p.vy;
-        p.life += 1;
-        const t = p.life / p.maxLife;
-        const alpha = (1 - t) * 0.8;
-        const grad = ctx!.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 2);
-        grad.addColorStop(0, `rgba(232, 197, 119, ${alpha})`);
-        grad.addColorStop(1, "rgba(232, 197, 119, 0)");
-        ctx!.fillStyle = grad;
-        ctx!.beginPath();
-        ctx!.arc(p.x, p.y, p.size * 2, 0, Math.PI * 2);
-        ctx!.fill();
+        const alpha = BASE_ALPHA + dot.glow * (LIT_ALPHA - BASE_ALPHA);
+        const size = BASE_SIZE + dot.glow * (LIT_SIZE - BASE_SIZE);
+        ctx!.fillStyle = `rgba(${GOLD}, ${alpha})`;
+        ctx!.fillRect(dot.x - size / 2, dot.y - size / 2, size, size);
       }
 
       raf = requestAnimationFrame(frame);
