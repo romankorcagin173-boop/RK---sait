@@ -1,5 +1,6 @@
 import { AtomizerScene } from "@/components/parfum/AtomizerScene";
 import { ProductCard } from "@/components/products/ProductCard";
+import { ProductGrid } from "@/components/products/ProductGrid";
 import { getProducts } from "@/lib/products";
 
 export const metadata = { title: "RK — Parfum" };
@@ -21,11 +22,11 @@ export default async function ParfumPage() {
           {products.length === 0 ? (
             <p className="text-ash">Скоро здесь появятся ароматы.</p>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <ProductGrid className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {products.map((p) => (
                 <ProductCard key={p.id} product={p} />
               ))}
-            </div>
+            </ProductGrid>
           )}
         </div>
       </section>

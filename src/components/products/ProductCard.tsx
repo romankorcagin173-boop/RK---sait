@@ -2,12 +2,13 @@ import Link from "next/link";
 import type { ProductRow } from "@/lib/database.types";
 import { formatPrice } from "@/lib/format";
 import { AddToCartButton } from "@/components/products/AddToCartButton";
+import { TiltCard } from "@/components/products/TiltCard";
 
 export function ProductCard({ product }: { product: ProductRow }) {
   const href = `/${product.category === "parfum" ? "parfum" : "3d-print"}/${product.slug}`;
 
   return (
-    <div className="group flex flex-col overflow-hidden rounded-2xl border hairline bg-charcoal">
+    <TiltCard className="group flex flex-col overflow-hidden rounded-2xl border hairline bg-charcoal">
       <Link href={href} className="relative block aspect-[3/4] overflow-hidden bg-ink-soft">
         {product.images[0] && (
           // Plain <img>, not next/image: Next's server-side image
@@ -43,6 +44,6 @@ export function ProductCard({ product }: { product: ProductRow }) {
         </div>
         <AddToCartButton product={product} />
       </div>
-    </div>
+    </TiltCard>
   );
 }
