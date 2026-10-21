@@ -3,13 +3,21 @@
 import { useEffect, useRef } from "react";
 
 interface Dot {
+  baseX: number;
+  baseY: number;
   x: number;
   y: number;
   glow: number;
+  freqX: number;
+  freqY: number;
+  phaseX: number;
+  phaseY: number;
 }
 
-const SPACING = 36;
-const RADIUS = 140;
+const SPACING = 8;
+const JITTER = SPACING * 0.3;
+const WOBBLE = 1.4;
+const RADIUS = 105;
 const BASE_ALPHA = 0.045;
 const LIT_ALPHA = 0.85;
 const BASE_SIZE = 1;
@@ -20,16 +28,16 @@ const GOLD = "201, 162, 74";
 
 // A faint field of micro-dots sitting behind page content — mostly
 // invisible at rest, lighting up gold near the cursor and fading back out
-// as it moves away. Desktop/fine-pointer only, skipped for
-// prefers-reduced-motion, pointer-events none throughout.
+// as it moves away. Dots are jittered off a grid (so they read as
+// scattered, not aligned) and drift slightly in place, like atoms.
+// Desktop/fine-pointer only, skipped for prefers-reduced-motion,
+// pointer-events none throughout.
 export function CursorGlow() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    if (
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
-      !window.matchMedia("(pointer: fine)").matches
-    ) {
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced || !window.matchMedia("(pointer: fine)").matches) {
       return;
     }
 
@@ -45,7 +53,19 @@ export function CursorGlow() {
       dots = [];
       for (let y = SPACING / 2; y < height; y += SPACING) {
         for (let x = SPACING / 2; x < width; x += SPACING) {
-          dots.push({ x, y, glow: 0 });
+          const baseX = x + (Math.random() * 2 - 1) * JITTER;
+          const baseY = y + (Math.random() * 2 - 1) * JITTER;
+          dots.push({
+            baseX,
+            baseY,
+            x: baseX,
+            y: baseY,
+            glow: 0,
+            freqX: 0.0004 + Math.random() * 0.0006,
+            freqY: 0.0004 + Math.random() * 0.0006,
+            phaseX: Math.random() * Math.PI * 2,
+            phaseY: Math.random() * Math.PI * 2,
+          });
         }
       }
     }
@@ -76,10 +96,13 @@ export function CursorGlow() {
     window.addEventListener("pointerleave", handleLeave);
 
     let raf = 0;
-    function frame() {
+    function frame(t: number) {
       ctx!.clearRect(0, 0, width, height);
 
       for (const dot of dots) {
+        dot.x = dot.baseX + Math.sin(t * dot.freqX + dot.phaseX) * WOBBLE;
+        dot.y = dot.baseY + Math.cos(t * dot.freqY + dot.phaseY) * WOBBLE;
+
         let target = 0;
         if (pointer.active) {
           const dx = dot.x - pointer.x;
