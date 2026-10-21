@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateOrderNumber } from "@/lib/order-number";
 import { notifyNewOrder } from "@/lib/telegram";
-import type { OrderItem, VolumeOption } from "@/lib/database.types";
+import type { OrderItem, PromoValidation, VolumeOption } from "@/lib/database.types";
+import { MIN_DECANT_ML } from "@/lib/checkout-rules";
 
 interface RequestBody {
   // variantMl: undefined = no volume option chosen (flat price); null = the
@@ -16,6 +17,7 @@ interface RequestBody {
   contactTelegram?: string;
   contactEmail: string;
   comment?: string;
+  promoCode?: string;
 }
 
 export async function POST(request: Request) {
@@ -126,7 +128,39 @@ export async function POST(request: Request) {
       );
     }
 
-    const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+    const decantMl = items.reduce(
+      (sum, i) => (i.volume_ml != null ? sum + i.volume_ml * i.quantity : sum),
+      0
+    );
+    if (decantMl > 0 && decantMl < MIN_DECANT_ML) {
+      return NextResponse.json(
+        {
+          error: `Минимальный заказ на распив — ${MIN_DECANT_ML} мл суммарно. Сейчас в заказе ${decantMl} мл — добавьте ещё или выберите больший объём.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+
+    let discountAmount = 0;
+    let appliedPromoCode: string | null = null;
+    if (body.promoCode?.trim()) {
+      const { data: validation } = await supabase
+        .rpc("validate_promo_code", { p_code: body.promoCode.trim() })
+        .returns<PromoValidation[]>()
+        .maybeSingle();
+      if (!validation?.valid) {
+        return NextResponse.json(
+          { error: validation?.reason || "Промокод недействителен." },
+          { status: 400 }
+        );
+      }
+      discountAmount = Math.round(subtotal * ((validation.discount_percent ?? 0) / 100) * 100) / 100;
+      appliedPromoCode = body.promoCode.trim().toUpperCase();
+    }
+
+    const total = Math.max(0, subtotal - discountAmount);
     const orderNumber = generateOrderNumber();
 
     const { data: order, error: insertError } = await supabase
@@ -136,6 +170,8 @@ export async function POST(request: Request) {
         user_id: user.id,
         items,
         total,
+        promo_code: appliedPromoCode,
+        discount_amount: discountAmount,
         contact_name: body.contactName,
         contact_phone: body.contactPhone || null,
         contact_telegram: body.contactTelegram ? body.contactTelegram.replace(/^@/, "") : null,
@@ -149,6 +185,16 @@ export async function POST(request: Request) {
     if (insertError || !order) {
       console.error("order insert failed", insertError);
       return NextResponse.json({ error: "Не удалось создать заказ." }, { status: 500 });
+    }
+
+    // Best-effort: the order already exists and is what counts — a failed
+    // redeem (e.g. lost a race for the last use) doesn't undo it.
+    if (appliedPromoCode) {
+      try {
+        await supabase.rpc("redeem_promo_code", { p_code: appliedPromoCode });
+      } catch (err) {
+        console.error("redeem_promo_code failed", err);
+      }
     }
 
     // A broken Telegram token/chat id or a flaky network call must never
@@ -168,7 +214,14 @@ export async function POST(request: Request) {
       console.error("Telegram notify threw", err);
     }
 
-    return NextResponse.json({ orderNumber, items, total });
+    return NextResponse.json({
+      orderNumber,
+      items,
+      total,
+      subtotal,
+      discountAmount,
+      promoCode: appliedPromoCode,
+    });
   } catch (err) {
     console.error("order creation failed", err);
     return NextResponse.json({ error: "Не удалось оформить заказ. Попробуйте ещё раз." }, { status: 500 });

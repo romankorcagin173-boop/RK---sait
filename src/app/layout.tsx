@@ -5,6 +5,7 @@ import { AuthProvider } from "@/providers/AuthProvider";
 import { Navbar } from "@/components/nav/Navbar";
 import { Footer } from "@/components/nav/Footer";
 import { CartHydration } from "@/components/CartHydration";
+import { CursorGlow } from "@/components/effects/CursorGlow";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full flex flex-col bg-ink text-paper">
         <AuthProvider>
           <CartHydration />
+          <CursorGlow />
           <Navbar />
           <main className="flex-1 flex flex-col">{children}</main>
           <Footer />

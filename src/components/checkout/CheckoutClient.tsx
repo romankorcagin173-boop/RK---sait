@@ -2,17 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Copy, Send } from "lucide-react";
+import { Check, Copy, Send, Tag, X } from "lucide-react";
 import { useAuth } from "@/providers/AuthProvider";
 import { useCartStore } from "@/store/cart";
 import { formatPrice } from "@/lib/format";
+import { MIN_DECANT_ML } from "@/lib/checkout-rules";
 import { Input, Textarea } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
+import { OrderThresholds } from "@/components/cart/OrderThresholds";
+import { ConfettiBurst } from "@/components/checkout/ConfettiBurst";
 
 interface OrderResult {
   orderNumber: string;
   items: { name: string; price: number; quantity: number; volume_label: string | null }[];
   total: number;
+  subtotal: number;
+  discountAmount: number;
+  promoCode: string | null;
 }
 
 interface FormState {
@@ -23,6 +29,11 @@ interface FormState {
   comment?: string;
 }
 
+interface AppliedPromo {
+  code: string;
+  discountPercent: number;
+}
+
 function buildOrderText(
   result: OrderResult,
   contact: { name: string; phone: string; telegram: string; email: string; comment: string }
@@ -31,6 +42,14 @@ function buildOrderText(
     (i) =>
       `• ${i.name}${i.volume_label ? ` (${i.volume_label})` : ""} × ${i.quantity} — ${formatPrice(i.price * i.quantity)}`
   );
+  const totalLines =
+    result.discountAmount > 0
+      ? [
+          `Сумма: ${formatPrice(result.subtotal)}`,
+          `Промокод ${result.promoCode}: −${formatPrice(result.discountAmount)}`,
+          `Итого: ${formatPrice(result.total)}`,
+        ]
+      : [`Итого: ${formatPrice(result.total)}`];
   const contactLines = [
     `Имя: ${contact.name}`,
     contact.phone ? `Телефон: ${contact.phone}` : null,
@@ -39,9 +58,7 @@ function buildOrderText(
     contact.comment ? `Комментарий: ${contact.comment}` : null,
   ].filter((l): l is string => Boolean(l));
 
-  return [`Заказ №${result.orderNumber}`, "", ...itemLines, "", `Итого: ${formatPrice(result.total)}`, "", ...contactLines].join(
-    "\n"
-  );
+  return [`Заказ №${result.orderNumber}`, "", ...itemLines, "", ...totalLines, "", ...contactLines].join("\n");
 }
 
 export function CheckoutClient({ telegramContact }: { telegramContact: string | null }) {
@@ -49,6 +66,7 @@ export function CheckoutClient({ telegramContact }: { telegramContact: string | 
   const { authUser, profile, loading: authLoading } = useAuth();
   const items = useCartStore((s) => s.items);
   const total = useCartStore((s) => s.total());
+  const totalMl = useCartStore((s) => s.totalMl());
   const clear = useCartStore((s) => s.clear);
 
   // Fields the user hasn't touched yet fall back to their profile info,
@@ -67,6 +85,17 @@ export function CheckoutClient({ telegramContact }: { telegramContact: string | 
   const [result, setResult] = useState<OrderResult | null>(null);
   const [copied, setCopied] = useState(false);
 
+  const [promoInput, setPromoInput] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoLoading, setPromoLoading] = useState(false);
+
+  const discountAmount = appliedPromo
+    ? Math.round(total * (appliedPromo.discountPercent / 100) * 100) / 100
+    : 0;
+  const payableTotal = Math.max(0, total - discountAmount);
+  const minMlBlocked = totalMl > 0 && totalMl < MIN_DECANT_ML;
+
   useEffect(() => {
     if (!authLoading && !authUser) {
       router.replace("/login?next=/checkout");
@@ -77,6 +106,33 @@ export function CheckoutClient({ telegramContact }: { telegramContact: string | 
     setEdited((f) => ({ ...f, [key]: value }));
   }
 
+  async function handleApplyPromo() {
+    if (!promoInput.trim()) return;
+    setPromoError(null);
+    setPromoLoading(true);
+    try {
+      const res = await fetch("/api/promo/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: promoInput.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Промокод недействителен.");
+      setAppliedPromo({ code: data.code, discountPercent: data.discountPercent });
+    } catch (err) {
+      setAppliedPromo(null);
+      setPromoError(err instanceof Error ? err.message : "Промокод недействителен.");
+    } finally {
+      setPromoLoading(false);
+    }
+  }
+
+  function handleRemovePromo() {
+    setAppliedPromo(null);
+    setPromoInput("");
+    setPromoError(null);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -84,6 +140,10 @@ export function CheckoutClient({ telegramContact }: { telegramContact: string | 
 
     if (!form.phone && !form.telegram) {
       setContactError("Укажите телефон или Telegram для связи.");
+      return;
+    }
+    if (minMlBlocked) {
+      setError(`Минимальный заказ на распив — ${MIN_DECANT_ML} мл суммарно. Сейчас в заказе ${totalMl} мл.`);
       return;
     }
 
@@ -103,6 +163,7 @@ export function CheckoutClient({ telegramContact }: { telegramContact: string | 
           contactTelegram: form.telegram || undefined,
           contactEmail: form.email,
           comment: form.comment || undefined,
+          promoCode: appliedPromo?.code,
         }),
       });
       const raw = await res.text();
@@ -138,16 +199,23 @@ export function CheckoutClient({ telegramContact }: { telegramContact: string | 
 
     return (
       <div className="container-page flex flex-1 items-center justify-center py-24">
-        <div className="w-full max-w-lg rounded-2xl border border-red/30 bg-charcoal p-8 sm:p-10 text-center shadow-[0_0_60px_rgba(163,39,42,0.12)]">
+        <div className="relative w-full max-w-lg animate-pop-in rounded-2xl glass-panel p-8 sm:p-10 text-center shadow-[0_0_60px_rgba(201,162,74,0.15)]">
+          <ConfettiBurst />
           <h1 className="font-display text-3xl text-paper mb-3">✨ Заказ оформлен!</h1>
           <p className="text-ash mb-6">
             Номер заказа <span className="text-paper">№{result.orderNumber}</span>. Чтобы мы увидели
             заказ быстрее — скопируйте его и отправьте нам в Telegram.
           </p>
 
-          <div className="rounded-xl border hairline bg-ink-soft p-5 text-left mb-6 whitespace-pre-line text-sm text-ash">
+          <div className="rounded-xl border hairline bg-ink-soft/80 p-5 text-left mb-6 whitespace-pre-line text-sm text-ash">
             {orderText}
           </div>
+
+          {result.discountAmount > 0 && (
+            <p className="mb-6 text-sm text-gold-bright">
+              Промокод «{result.promoCode}» сэкономил вам {formatPrice(result.discountAmount)} 🎉
+            </p>
+          )}
 
           <div className="flex flex-col gap-3 mb-6 sm:flex-row">
             <Button onClick={() => handleCopy(orderText)} variant="outline" className="flex-1">
@@ -226,13 +294,13 @@ export function CheckoutClient({ telegramContact }: { telegramContact: string | 
 
           {error && <p className="text-sm text-red-bright">{error}</p>}
 
-          <Button type="submit" loading={loading} className="mt-2 w-full sm:w-auto">
+          <Button type="submit" loading={loading} disabled={minMlBlocked} className="mt-2 w-full sm:w-auto">
             Приобрести
           </Button>
         </form>
 
-        <div className="h-fit rounded-xl border hairline bg-charcoal p-6">
-          <div className="flex flex-col gap-2 mb-4">
+        <div className="h-fit flex flex-col gap-4 rounded-xl border hairline bg-charcoal p-6">
+          <div className="flex flex-col gap-2">
             {items.map((item) => (
               <div
                 key={`${item.productId}::${item.variantMl ?? ""}`}
@@ -246,10 +314,61 @@ export function CheckoutClient({ telegramContact }: { telegramContact: string | 
               </div>
             ))}
           </div>
-          <div className="flex justify-between text-paper text-lg font-medium pt-4 border-t hairline">
-            <span>Итого</span>
-            <span>{formatPrice(total)}</span>
+
+          <div className="border-t hairline pt-4">
+            {appliedPromo ? (
+              <div className="flex items-center justify-between rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-sm text-gold-bright">
+                <span className="flex items-center gap-1.5">
+                  <Tag size={13} /> {appliedPromo.code} (−{appliedPromo.discountPercent}%)
+                </span>
+                <button
+                  type="button"
+                  onClick={handleRemovePromo}
+                  aria-label="Убрать промокод"
+                  className="text-ash hover:text-paper transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <input
+                    value={promoInput}
+                    onChange={(e) => setPromoInput(e.target.value)}
+                    placeholder="Промокод"
+                    aria-label="Промокод"
+                    className="w-full rounded-lg border hairline bg-ink-soft px-3 py-2 text-sm text-paper placeholder:text-ash-soft outline-none focus:border-red focus-visible:ring-2 focus-visible:ring-red-bright transition-colors"
+                  />
+                  <Button type="button" variant="outline" loading={promoLoading} onClick={handleApplyPromo}>
+                    Применить
+                  </Button>
+                </div>
+                {promoError && <p className="text-xs text-red-bright">{promoError}</p>}
+              </div>
+            )}
           </div>
+
+          <div className="flex flex-col gap-1 border-t hairline pt-4">
+            {discountAmount > 0 && (
+              <div className="flex justify-between text-sm text-ash">
+                <span>Сумма</span>
+                <span>{formatPrice(total)}</span>
+              </div>
+            )}
+            {discountAmount > 0 && (
+              <div className="flex justify-between text-sm text-gold-bright">
+                <span>Скидка</span>
+                <span>−{formatPrice(discountAmount)}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-paper text-lg font-medium">
+              <span>Итого</span>
+              <span>{formatPrice(payableTotal)}</span>
+            </div>
+          </div>
+
+          <OrderThresholds total={payableTotal} totalMl={totalMl} />
         </div>
       </div>
     </div>

@@ -91,6 +91,25 @@ export interface OrderRow {
   source: OrderSource;
   telegram_chat_id: number | null;
   telegram_username: string | null;
+  promo_code: string | null;
+  discount_amount: number;
+  created_at: string;
+}
+
+export interface PromoValidation {
+  valid: boolean;
+  discount_percent: number | null;
+  reason: string | null;
+}
+
+export interface PromoCodeRow {
+  id: string;
+  code: string;
+  discount_percent: number;
+  is_active: boolean;
+  max_uses: number | null;
+  used_count: number;
+  expires_at: string | null;
   created_at: string;
 }
 
@@ -132,12 +151,26 @@ export interface Database {
         Partial<OrderRow>
       >;
       site_settings: TableDef<SiteSettingRow, SiteSettingRow, Partial<SiteSettingRow>>;
+      promo_codes: TableDef<
+        PromoCodeRow,
+        Omit<PromoCodeRow, "id" | "created_at" | "used_count"> &
+          Partial<Pick<PromoCodeRow, "id" | "used_count">>,
+        Partial<PromoCodeRow>
+      >;
     };
     Views: Record<string, never>;
     Functions: {
       get_email_for_login: {
         Args: { identifier: string };
         Returns: string;
+      };
+      validate_promo_code: {
+        Args: { p_code: string };
+        Returns: PromoValidation[];
+      };
+      redeem_promo_code: {
+        Args: { p_code: string };
+        Returns: boolean;
       };
     };
     Enums: {

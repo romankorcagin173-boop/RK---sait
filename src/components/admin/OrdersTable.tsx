@@ -85,7 +85,17 @@ export function OrdersTable({ initialOrders }: { initialOrders: OrderRow[] }) {
                   <span>{formatPrice(item.price * item.quantity)}</span>
                 </div>
               ))}
-              <div className="mt-2 flex justify-between text-paper font-medium border-t hairline pt-2">
+              {order.discount_amount > 0 && (
+                <div className="mt-2 flex justify-between border-t hairline pt-2 text-gold-bright">
+                  <span>Промокод «{order.promo_code}»</span>
+                  <span>−{formatPrice(order.discount_amount)}</span>
+                </div>
+              )}
+              <div
+                className={`flex justify-between text-paper font-medium ${
+                  order.discount_amount > 0 ? "mt-1" : "mt-2 border-t hairline pt-2"
+                }`}
+              >
                 <span>Итого</span>
                 <span>{formatPrice(order.total)}</span>
               </div>

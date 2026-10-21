@@ -12,6 +12,10 @@ export interface CartItem {
   // productId this forms the line's identity, so the same product bought
   // in two different volumes is two separate lines.
   variantMl?: number | null | "remainder";
+  // The actual ml this line represents, independent of variantMl's role as
+  // a line-identity key — null both for "no variant chosen" and "whole
+  // bottle" (neither counts toward the minimum decant order total).
+  ml?: number | null;
   volumeLabel?: string;
   slug: string;
   name: string;
@@ -33,6 +37,7 @@ interface CartState {
   clear: () => void;
   total: () => number;
   count: () => number;
+  totalMl: () => number;
 }
 
 export const useCartStore = create<CartState>()(
@@ -70,6 +75,8 @@ export const useCartStore = create<CartState>()(
       clear: () => set({ items: [] }),
       total: () => get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),
       count: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
+      totalMl: () =>
+        get().items.reduce((sum, i) => (i.ml != null ? sum + i.ml * i.quantity : sum), 0),
     }),
     {
       name: "rk-cart",

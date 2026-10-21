@@ -51,10 +51,12 @@ export function AddToCartButton({ product }: { product: ProductRow }) {
         : chosenOption
           ? optionLabel(chosenOption.ml)
           : undefined;
+    const ml = selected === "remainder" ? product.remaining_ml : chosenOption ? chosenOption.ml : null;
 
     add({
       productId: product.id,
       variantMl,
+      ml,
       volumeLabel,
       slug: product.slug,
       name: product.name,

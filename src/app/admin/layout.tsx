@@ -6,6 +6,7 @@ const LINKS = [
   { href: "/admin", label: "Обзор" },
   { href: "/admin/products", label: "Товары" },
   { href: "/admin/orders", label: "Заказы" },
+  { href: "/admin/promo-codes", label: "Промокоды" },
   { href: "/admin/users", label: "Пользователи" },
   { href: "/admin/settings", label: "Настройки сайта" },
 ];

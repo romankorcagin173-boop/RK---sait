@@ -5,12 +5,14 @@ import { Minus, Plus, Trash2 } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { formatPrice } from "@/lib/format";
 import { Button } from "@/components/ui/Button";
+import { OrderThresholds } from "@/components/cart/OrderThresholds";
 
 export default function CartPage() {
   const items = useCartStore((s) => s.items);
   const setQuantity = useCartStore((s) => s.setQuantity);
   const remove = useCartStore((s) => s.remove);
   const total = useCartStore((s) => s.total());
+  const totalMl = useCartStore((s) => s.totalMl());
 
   if (items.length === 0) {
     return (
@@ -80,11 +82,12 @@ export default function CartPage() {
           ))}
         </div>
 
-        <div className="h-fit rounded-xl border hairline bg-charcoal p-6">
-          <div className="flex justify-between text-paper text-lg font-medium mb-6">
+        <div className="h-fit flex flex-col gap-4 rounded-xl border hairline bg-charcoal p-6">
+          <div className="flex justify-between text-paper text-lg font-medium">
             <span>Итого</span>
             <span>{formatPrice(total)}</span>
           </div>
+          <OrderThresholds total={total} totalMl={totalMl} />
           <Link href="/checkout">
             <Button className="w-full">Оформить заказ</Button>
           </Link>

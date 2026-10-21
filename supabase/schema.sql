@@ -105,6 +105,11 @@ create table if not exists public.orders (
   source text not null default 'site',
   telegram_chat_id bigint,
   telegram_username text,
+  -- promo code applied at checkout, if any — the code text and the amount
+  -- it discounted off the subtotal (both re-derived server-side, never
+  -- trusted from the client)
+  promo_code text,
+  discount_amount numeric(10, 2) not null default 0,
   created_at timestamptz not null default now()
 );
 
@@ -117,6 +122,22 @@ alter table public.orders
   drop constraint if exists orders_owner_check;
 alter table public.orders
   add constraint orders_owner_check check (user_id is not null or telegram_chat_id is not null);
+
+-- ----------------------------------------------------------------------------
+-- promo_codes — percentage discount codes, redeemed at checkout
+-- ----------------------------------------------------------------------------
+create table if not exists public.promo_codes (
+  id uuid primary key default gen_random_uuid(),
+  code text not null unique,
+  discount_percent numeric(5, 2) not null check (discount_percent > 0 and discount_percent <= 100),
+  is_active boolean not null default true,
+  -- null = unlimited uses
+  max_uses integer,
+  used_count integer not null default 0,
+  -- null = never expires
+  expires_at timestamptz,
+  created_at timestamptz not null default now()
+);
 
 -- ----------------------------------------------------------------------------
 -- site_settings — small key/value store editable from the admin panel
@@ -218,6 +239,69 @@ as $$
   select coalesce((select is_blocked from public.profiles where id = auth.uid()), false);
 $$;
 
+-- Checks a promo code without exposing the promo_codes table to anon —
+-- the caller must already know the exact code string; there's no way to
+-- enumerate codes through this function.
+create or replace function public.validate_promo_code(p_code text)
+returns table(valid boolean, discount_percent numeric, reason text)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  rec record;
+begin
+  select * into rec from public.promo_codes where upper(code) = upper(p_code);
+  if rec is null then
+    return query select false, null::numeric, 'Промокод не найден.';
+    return;
+  end if;
+  if not rec.is_active then
+    return query select false, null::numeric, 'Промокод неактивен.';
+    return;
+  end if;
+  if rec.expires_at is not null and rec.expires_at < now() then
+    return query select false, null::numeric, 'Промокод истёк.';
+    return;
+  end if;
+  if rec.max_uses is not null and rec.used_count >= rec.max_uses then
+    return query select false, null::numeric, 'Промокод уже использован максимальное число раз.';
+    return;
+  end if;
+  return query select true, rec.discount_percent, null::text;
+end;
+$$;
+
+grant execute on function public.validate_promo_code(text) to anon, authenticated;
+
+-- Atomically increments used_count, re-checking the same validity
+-- conditions so a code can't be redeemed past its limit by a race between
+-- two concurrent checkouts. Called after an order with this code is
+-- successfully created — a false return means someone else used up the
+-- last slot in between validation and redemption; the order still stands,
+-- it just means this was effectively the code's last valid use.
+create or replace function public.redeem_promo_code(p_code text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_updated int;
+begin
+  update public.promo_codes
+  set used_count = used_count + 1
+  where upper(code) = upper(p_code)
+    and is_active
+    and (expires_at is null or expires_at > now())
+    and (max_uses is null or used_count < max_uses);
+  get diagnostics v_updated = row_count;
+  return v_updated > 0;
+end;
+$$;
+
+grant execute on function public.redeem_promo_code(text) to authenticated;
+
 -- keep products.updated_at current
 create or replace function public.set_updated_at()
 returns trigger
@@ -291,6 +375,7 @@ alter table public.products enable row level security;
 alter table public.reviews enable row level security;
 alter table public.orders enable row level security;
 alter table public.site_settings enable row level security;
+alter table public.promo_codes enable row level security;
 
 -- profiles ---------------------------------------------------------------
 drop policy if exists "profiles_select_own_or_admin" on public.profiles;
@@ -343,6 +428,13 @@ create policy "orders_update_admin" on public.orders
 drop policy if exists "orders_delete_admin" on public.orders;
 create policy "orders_delete_admin" on public.orders
   for delete using (public.is_admin());
+
+-- promo_codes ----------------------------------------------------------
+-- No public select policy — codes are only checked through
+-- validate_promo_code()/redeem_promo_code() above, never read directly.
+drop policy if exists "promo_codes_admin_all" on public.promo_codes;
+create policy "promo_codes_admin_all" on public.promo_codes
+  for all using (public.is_admin()) with check (public.is_admin());
 
 -- site_settings ------------------------------------------------------------
 drop policy if exists "site_settings_select_public" on public.site_settings;
