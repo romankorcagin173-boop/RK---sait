@@ -8,7 +8,7 @@
   --color-paper: #f3f1ec;
   --color-paper-dim: #d9d6cd;
   --color-ash: #948f87;
-  --color-ash-soft: #5c5954;
+  --color-ash-soft: #857f77;
   --color-red: #a3272a;
   --color-red-bright: #c8383b;
   --color-line: rgba(243, 241, 236, 0.1);
@@ -49,6 +49,22 @@ body {
 ::selection {
   background: var(--color-red);
   color: var(--color-paper);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-red-bright);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 .font-display {

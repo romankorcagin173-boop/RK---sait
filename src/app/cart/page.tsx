@@ -51,23 +51,28 @@ export default function CartPage() {
               </div>
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={() => setQuantity(item.productId, item.quantity - 1, item.variantMl)}
-                  className="flex h-7 w-7 items-center justify-center rounded-full border hairline text-paper"
+                  aria-label="Уменьшить количество"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border hairline text-paper"
                 >
-                  <Minus size={12} />
+                  <Minus size={14} />
                 </button>
                 <span className="w-6 text-center text-paper">{item.quantity}</span>
                 <button
+                  type="button"
                   onClick={() => setQuantity(item.productId, item.quantity + 1, item.variantMl)}
-                  className="flex h-7 w-7 items-center justify-center rounded-full border hairline text-paper"
+                  aria-label="Увеличить количество"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border hairline text-paper"
                 >
-                  <Plus size={12} />
+                  <Plus size={14} />
                 </button>
               </div>
               <button
+                type="button"
                 onClick={() => remove(item.productId, item.variantMl)}
-                className="text-ash hover:text-red-bright transition-colors"
                 aria-label="Удалить"
+                className="flex h-9 w-9 shrink-0 items-center justify-center text-ash hover:text-red-bright transition-colors"
               >
                 <Trash2 size={16} />
               </button>

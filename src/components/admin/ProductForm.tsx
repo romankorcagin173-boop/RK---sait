@@ -261,7 +261,8 @@ export function ProductForm({ product }: { product?: ProductRow }) {
                   <button
                     type="button"
                     onClick={() => setVolumeOptions((list) => list.filter((_, j) => j !== i))}
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border hairline text-ash hover:text-red-bright transition-colors"
+                    aria-label="Удалить вариант объёма"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border hairline text-ash hover:text-red-bright transition-colors"
                   >
                     <X size={14} />
                   </button>
@@ -293,7 +294,9 @@ export function ProductForm({ product }: { product?: ProductRow }) {
       )}
 
       <div>
-        <span className="text-xs uppercase tracking-[0.12em] text-ash mb-2 block">Фото</span>
+        <label htmlFor="product-photos" className="text-xs uppercase tracking-[0.12em] text-ash mb-2 block">
+          Фото
+        </label>
         {images.length > 0 && (
           <div className="mb-3 flex flex-wrap gap-2">
             {images.map((url) => (
@@ -314,15 +317,17 @@ export function ProductForm({ product }: { product?: ProductRow }) {
                 <button
                   type="button"
                   onClick={() => setImages((prev) => prev.filter((u) => u !== url))}
-                  className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-ink/80 text-paper"
+                  aria-label="Удалить фото"
+                  className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full bg-ink/80 text-paper"
                 >
-                  <X size={12} />
+                  <X size={14} />
                 </button>
               </div>
             ))}
           </div>
         )}
         <input
+          id="product-photos"
           type="file"
           accept="image/*"
           multiple

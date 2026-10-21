@@ -16,12 +16,16 @@ function LoginForm() {
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [identifierError, setIdentifierError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
+    setIdentifierError(null);
+    setPasswordError(null);
+    setFormError(null);
     setLoading(true);
 
     try {
@@ -29,14 +33,18 @@ function LoginForm() {
         identifier: identifier.trim(),
       });
       if (rpcError || !email) {
-        throw new Error("Пользователь с таким логином или почтой не найден.");
+        setIdentifierError("Пользователь с таким логином или почтой не найден.");
+        return;
       }
 
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      if (signInError) throw new Error("Неверный логин или пароль.");
+      if (signInError) {
+        setPasswordError("Неверный логин или пароль.");
+        return;
+      }
 
       const { data: profile } = await supabase
         .from("profiles")
@@ -46,13 +54,14 @@ function LoginForm() {
 
       if (profile?.is_blocked) {
         await supabase.auth.signOut();
-        throw new Error("Аккаунт заблокирован. Свяжитесь с поддержкой бренда.");
+        setFormError("Аккаунт заблокирован. Свяжитесь с поддержкой бренда.");
+        return;
       }
 
       router.push(profile?.is_admin ? "/admin" : next);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось войти.");
+      setFormError(err instanceof Error ? err.message : "Не удалось войти.");
     } finally {
       setLoading(false);
     }
@@ -77,6 +86,7 @@ function LoginForm() {
             required
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
+            error={identifierError ?? undefined}
           />
           <Input
             label="Пароль"
@@ -84,9 +94,10 @@ function LoginForm() {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            error={passwordError ?? undefined}
           />
 
-          {error && <p className="text-sm text-red-bright">{error}</p>}
+          {formError && <p className="text-sm text-red-bright">{formError}</p>}
 
           <Button type="submit" loading={loading} className="mt-2 w-full">
             Войти

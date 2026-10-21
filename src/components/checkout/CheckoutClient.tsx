@@ -61,6 +61,7 @@ export function CheckoutClient({ telegramContact }: { telegramContact: string | 
     email: edited.email ?? profile?.email ?? "",
     comment: edited.comment ?? "",
   };
+  const [contactError, setContactError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<OrderResult | null>(null);
@@ -79,9 +80,10 @@ export function CheckoutClient({ telegramContact }: { telegramContact: string | 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setContactError(null);
 
     if (!form.phone && !form.telegram) {
-      setError("Укажите телефон или Telegram для связи.");
+      setContactError("Укажите телефон или Telegram для связи.");
       return;
     }
 
@@ -200,6 +202,7 @@ export function CheckoutClient({ telegramContact }: { telegramContact: string | 
             type="tel"
             value={form.phone}
             onChange={(e) => update("phone", e.target.value)}
+            error={contactError ?? undefined}
           />
           <Input
             label="Telegram"

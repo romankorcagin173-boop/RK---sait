@@ -39,6 +39,16 @@ export function AtomizerScene() {
 
     const beats = beatRefs.current.filter((b): b is HTMLDivElement => Boolean(b));
 
+    // Same reasoning as EnvelopeScene: this pins the viewport for 2.6
+    // screens of scrubbed text crossfades — skip it and show the brand
+    // lockup directly when the user has asked for reduced motion.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      gsap.set(beats, { opacity: 0 });
+      gsap.set(brandRef.current, { opacity: 1, y: 0 });
+      gsap.set(hintRef.current, { opacity: 0 });
+      return;
+    }
+
     gsap.set(beats, { opacity: 0, filter: "blur(14px)", scale: 1.05 });
     gsap.set(brandRef.current, { opacity: 0, y: 24 });
 

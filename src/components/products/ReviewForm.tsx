@@ -86,8 +86,11 @@ export function ReviewForm({ productId, onSubmitted }: { productId: string; onSu
       <Textarea label="Плюсы" value={pros} onChange={(e) => setPros(e.target.value)} />
       <Textarea label="Минусы" value={cons} onChange={(e) => setCons(e.target.value)} />
       <div>
-        <span className="text-xs uppercase tracking-[0.12em] text-ash mb-2 block">Фото (до 5)</span>
+        <label htmlFor="review-photos" className="text-xs uppercase tracking-[0.12em] text-ash mb-2 block">
+          Фото (до 5)
+        </label>
         <input
+          id="review-photos"
           type="file"
           accept="image/*"
           multiple

@@ -59,7 +59,7 @@ export function Navbar() {
         <div className="flex items-center gap-4">
           <Link
             href="/cart"
-            className="relative flex h-9 w-9 items-center justify-center rounded-full border hairline text-paper hover:border-line-strong transition-colors"
+            className="relative flex h-10 w-10 items-center justify-center rounded-full border hairline text-paper hover:border-line-strong transition-colors"
             aria-label="Корзина"
           >
             <ShoppingBag size={16} />
@@ -79,7 +79,8 @@ export function Navbar() {
           </Link>
 
           <button
-            className="lg:hidden flex h-9 w-9 items-center justify-center text-paper"
+            type="button"
+            className="lg:hidden flex h-10 w-10 items-center justify-center text-paper"
             onClick={() => setOpen((v) => !v)}
             aria-label="Меню"
           >

@@ -15,6 +15,26 @@ export function EnvelopeScene() {
   useLayoutEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
 
+    // Scroll-jacking a pinned 2.6-viewport-tall section is exactly the kind
+    // of motion prefers-reduced-motion exists for — skip the scrubbed
+    // timeline entirely and just show the end state.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      gsap.set(flapRef.current, { rotateX: -165, transformOrigin: "top center" });
+      gsap.set(cardRef.current, {
+        y: -128,
+        scale: 1,
+        rotateY: 180,
+        rotateX: 0,
+        opacity: 1,
+        zIndex: 45,
+        transformOrigin: "center center",
+      });
+      gsap.set(shadowRef.current, { opacity: 0.35, scaleX: 0.82 });
+      gsap.set(taglineRef.current, { opacity: 1, y: 0 });
+      gsap.set(hintRef.current, { opacity: 0 });
+      return;
+    }
+
     const ctx = gsap.context(() => {
       gsap.set(flapRef.current, { rotateX: 0, transformOrigin: "top center" });
       gsap.set(cardRef.current, {

@@ -18,7 +18,8 @@ export default function RegisterPage() {
     phone: "",
     telegram: "",
   });
-  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof typeof form, string>>>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   function update<K extends keyof typeof form>(key: K, value: string) {
@@ -27,18 +28,19 @@ export default function RegisterPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
+    setFormError(null);
+    setFieldErrors({});
 
     if (!form.phone && !form.telegram) {
-      setError("Укажите телефон или Telegram — хотя бы один способ связи обязателен.");
+      setFieldErrors({ phone: "Укажите телефон или Telegram — хотя бы один способ связи обязателен." });
       return;
     }
     if (form.password.length < 6) {
-      setError("Пароль должен быть не короче 6 символов.");
+      setFieldErrors({ password: "Пароль должен быть не короче 6 символов." });
       return;
     }
     if (!/^[a-zA-Z0-9_.-]{3,24}$/.test(form.username)) {
-      setError("Логин: 3–24 символа, латиница, цифры, _ . -");
+      setFieldErrors({ username: "Логин: 3–24 символа, латиница, цифры, _ . -" });
       return;
     }
 
@@ -46,7 +48,7 @@ export default function RegisterPage() {
     try {
       const { data: taken } = await supabase.rpc("username_exists", { u: form.username });
       if (taken) {
-        setError("Этот логин уже занят.");
+        setFieldErrors({ username: "Этот логин уже занят." });
         setLoading(false);
         return;
       }
@@ -72,7 +74,7 @@ export default function RegisterPage() {
         router.push("/login?registered=1");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось зарегистрироваться.");
+      setFormError(err instanceof Error ? err.message : "Не удалось зарегистрироваться.");
     } finally {
       setLoading(false);
     }
@@ -100,6 +102,7 @@ export default function RegisterPage() {
             placeholder="latin_letters_and_numbers"
             value={form.username}
             onChange={(e) => update("username", e.target.value)}
+            error={fieldErrors.username}
           />
           <Input
             label="Пароль"
@@ -107,6 +110,7 @@ export default function RegisterPage() {
             required
             value={form.password}
             onChange={(e) => update("password", e.target.value)}
+            error={fieldErrors.password}
           />
           <Input
             label="Телефон"
@@ -114,6 +118,7 @@ export default function RegisterPage() {
             placeholder="+7 900 000-00-00"
             value={form.phone}
             onChange={(e) => update("phone", e.target.value)}
+            error={fieldErrors.phone}
           />
           <Input
             label="Telegram"
@@ -121,9 +126,10 @@ export default function RegisterPage() {
             value={form.telegram}
             onChange={(e) => update("telegram", e.target.value)}
             hint="Телефон или Telegram — заполните хотя бы одно поле"
+            error={fieldErrors.telegram}
           />
 
-          {error && <p className="text-sm text-red-bright">{error}</p>}
+          {formError && <p className="text-sm text-red-bright">{formError}</p>}
 
           <Button type="submit" loading={loading} className="mt-2 w-full">
             Создать аккаунт
