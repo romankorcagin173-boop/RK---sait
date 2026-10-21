@@ -4,10 +4,29 @@ import { useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
+const DUST_COUNT = 14;
+// Same deterministic sine-based placement as AtomizerScene's dust, for the
+// same reason: this is a client component but still server-rendered for
+// the initial HTML, so Math.random() here would mismatch on hydration.
+const DUST = Array.from({ length: DUST_COUNT }).map((_, i) => {
+  const seed = i * 51.7;
+  return {
+    left: (Math.sin(seed) * 0.5 + 0.5) * 100,
+    top: (Math.cos(seed * 1.3) * 0.5 + 0.5) * 100,
+    size: 2 + (i % 5) * 1.4,
+    duration: 16 + (i % 6) * 3,
+    delay: -((i * 2.1) % 14),
+    opacity: 0.1 + (i % 4) * 0.06,
+  };
+});
+
 export function EnvelopeScene() {
   const sectionRef = useRef<HTMLDivElement | null>(null);
+  const bgGlowRef = useRef<HTMLDivElement | null>(null);
+  const bgHazeRef = useRef<HTMLDivElement | null>(null);
   const flapRef = useRef<HTMLDivElement | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
+  const glintRef = useRef<HTMLDivElement | null>(null);
   const shadowRef = useRef<HTMLDivElement | null>(null);
   const taglineRef = useRef<HTMLDivElement | null>(null);
   const hintRef = useRef<HTMLDivElement | null>(null);
@@ -36,6 +55,7 @@ export function EnvelopeScene() {
     }
 
     const ctx = gsap.context(() => {
+      gsap.set([bgGlowRef.current, bgHazeRef.current], { scale: 1, y: 0 });
       gsap.set(flapRef.current, { rotateX: 0, transformOrigin: "top center" });
       gsap.set(cardRef.current, {
         y: 125,
@@ -68,6 +88,24 @@ export function EnvelopeScene() {
           },
         },
       });
+
+      // Slow continuous drift on the two background glows, in opposite
+      // directions, for a bit of parallax depth behind the envelope —
+      // spans the whole timeline rather than any one phase.
+      tl.to(bgGlowRef.current, { scale: 1.15, y: -30, duration: 1, ease: "none" }, 0).to(
+        bgHazeRef.current,
+        { scale: 1.1, y: 20, duration: 1, ease: "none" },
+        0
+      );
+
+      // A light glint sweeping across the card right as it turns face-on —
+      // timed to land mid-flip, like the surface catching the light.
+      tl.fromTo(
+        glintRef.current,
+        { left: "-60%" },
+        { left: "160%", duration: 0.5, ease: "power1.inOut" },
+        0.56
+      );
 
       // Phase 1 — the flap unfolds, tipping back and away from the viewer.
       // The card is still behind the front pocket here (z-index 20, below
@@ -106,8 +144,34 @@ export function EnvelopeScene() {
       ref={sectionRef}
       className="relative flex h-screen w-full flex-col items-center justify-center overflow-hidden bg-ink"
     >
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(163,39,42,0.1),transparent_60%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_15%,rgba(243,241,236,0.05),transparent_45%)]" />
+      <div
+        ref={bgGlowRef}
+        className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(163,39,42,0.1),transparent_60%)]"
+      />
+      <div
+        ref={bgHazeRef}
+        className="absolute inset-0 bg-[radial-gradient(circle_at_50%_15%,rgba(243,241,236,0.05),transparent_45%)]"
+      />
+
+      {/* Drifting dust — pure ambience, runs on its own CSS loop
+          independent of scroll position (same device as AtomizerScene). */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        {DUST.map((d, i) => (
+          <span
+            key={i}
+            className="absolute rounded-full bg-paper"
+            style={{
+              left: `${d.left}%`,
+              top: `${d.top}%`,
+              width: d.size,
+              height: d.size,
+              opacity: d.opacity,
+              filter: "blur(1px)",
+              animation: `dust-drift ${d.duration}s ease-in-out ${d.delay}s infinite`,
+            }}
+          />
+        ))}
+      </div>
 
       <div
         className="relative z-[60] flex items-center justify-center"
@@ -178,6 +242,16 @@ export function EnvelopeScene() {
               alt="RK Private Edition"
               className="h-full w-full object-cover"
             />
+            <div
+              ref={glintRef}
+              className="pointer-events-none absolute inset-y-0 w-1/2"
+              style={{
+                left: "-60%",
+                background:
+                  "linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.55) 50%, transparent 70%)",
+                mixBlendMode: "screen",
+              }}
+            />
           </div>
         </div>
 
@@ -196,7 +270,7 @@ export function EnvelopeScene() {
             transformStyle: "preserve-3d",
           }}
         >
-          <span className="absolute left-1/2 top-6 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-red/70" />
+          <span className="absolute left-1/2 top-6 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-red/70 [animation:glow-pulse_2.4s_ease-in-out_infinite]" />
         </div>
       </div>
 

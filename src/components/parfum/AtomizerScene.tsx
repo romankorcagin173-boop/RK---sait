@@ -3,6 +3,7 @@
 import { useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { ParticleText, type ParticleTextHandle } from "@/components/parfum/ParticleText";
 
 // Short phrases that build toward the brand lockup — each one fills the
 // screen, holds, then dissolves into the next as the section stays pinned.
@@ -30,26 +31,22 @@ const DUST = Array.from({ length: DUST_COUNT }).map((_, i) => {
 
 export function AtomizerScene() {
   const sectionRef = useRef<HTMLDivElement | null>(null);
-  const beatRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const particleRefs = useRef<(ParticleTextHandle | null)[]>([]);
   const brandRef = useRef<HTMLDivElement | null>(null);
   const hintRef = useRef<HTMLDivElement | null>(null);
 
   useLayoutEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
 
-    const beats = beatRefs.current.filter((b): b is HTMLDivElement => Boolean(b));
-
     // Same reasoning as EnvelopeScene: this pins the viewport for 2.6
-    // screens of scrubbed text crossfades — skip it and show the brand
-    // lockup directly when the user has asked for reduced motion.
+    // screens of scrubbed text — skip it and show the brand lockup
+    // directly when the user has asked for reduced motion.
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      gsap.set(beats, { opacity: 0 });
       gsap.set(brandRef.current, { opacity: 1, y: 0 });
       gsap.set(hintRef.current, { opacity: 0 });
       return;
     }
 
-    gsap.set(beats, { opacity: 0, filter: "blur(14px)", scale: 1.05 });
     gsap.set(brandRef.current, { opacity: 0, y: 24 });
 
     const ctx = gsap.context(() => {
@@ -72,17 +69,17 @@ export function AtomizerScene() {
       });
 
       // Each beat gets an equal scroll slice; the final slice is reserved
-      // for the brand lockup to fade in and hold.
-      const slice = 1 / (beats.length + 1);
-      beats.forEach((beat, i) => {
+      // for the brand lockup to fade in and hold. The beat's own letters
+      // assemble from scattered particles into shape (and scatter again
+      // on the way out) rather than just fading/blurring.
+      const slice = 1 / (BEATS.length + 1);
+      BEATS.forEach((_, i) => {
         const start = i * slice;
-        tl.to(
-          beat,
-          { opacity: 1, filter: "blur(0px)", scale: 1, duration: slice * 0.4, ease: "power2.out" },
-          start
-        ).to(
-          beat,
-          { opacity: 0, filter: "blur(10px)", scale: 0.97, duration: slice * 0.32, ease: "power1.in" },
+        const progress = { value: 0 };
+        const update = () => particleRefs.current[i]?.setProgress(progress.value);
+        tl.to(progress, { value: 1, duration: slice * 0.4, ease: "power2.out", onUpdate: update }, start).to(
+          progress,
+          { value: 0, duration: slice * 0.32, ease: "power1.in", onUpdate: update },
           start + slice * 0.6
         );
       });
@@ -90,7 +87,7 @@ export function AtomizerScene() {
       tl.to(
         brandRef.current,
         { opacity: 1, y: 0, duration: slice * 0.5, ease: "power2.out" },
-        beats.length * slice
+        BEATS.length * slice
       );
     }, sectionRef);
 
@@ -127,22 +124,14 @@ export function AtomizerScene() {
 
       <div className="relative z-10 flex w-full max-w-3xl justify-center px-6" style={{ height: "16rem" }}>
         {BEATS.map((lines, i) => (
-          <div
+          <ParticleText
             key={i}
+            lines={lines}
             ref={(el) => {
-              beatRefs.current[i] = el;
+              particleRefs.current[i] = el;
             }}
-            className="absolute inset-0 flex flex-col items-center justify-center gap-1"
-          >
-            {lines.map((line, j) => (
-              <p
-                key={j}
-                className="font-display italic text-3xl sm:text-5xl text-paper leading-tight text-center"
-              >
-                {line}
-              </p>
-            ))}
-          </div>
+            className="absolute inset-0"
+          />
         ))}
 
         <div ref={brandRef} className="absolute inset-0 flex flex-col items-center justify-center gap-3">
