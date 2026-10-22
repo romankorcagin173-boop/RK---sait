@@ -16,7 +16,12 @@ interface Particle {
 
 // Paper white — matches the text color this replaces.
 const DOT = "243, 241, 236";
-const SAMPLE_STEP = 2.6;
+const SAMPLE_STEP = 0.9;
+// Dot size at full assembly (MIN_DOT) vs. fully scattered (MAX_DOT) — picked
+// via a live density/solidity comparison so the formed text reads as solid
+// letterforms instead of a sparse stipple.
+const MIN_DOT = 0.7;
+const MAX_DOT = 2.6;
 
 // Draws `lines` as a cloud of particles that converge into the actual
 // letterforms as `setProgress` goes 0 -> 1 (and scatter again on the way
@@ -129,7 +134,7 @@ export const ParticleText = forwardRef<
 
         const x = particle.startX + (particle.targetX - particle.startX) * eased;
         const y = particle.startY + (particle.targetY - particle.startY) * eased;
-        const size = 0.6 + (1 - eased) * 1.6;
+        const size = MIN_DOT + (1 - eased) * (MAX_DOT - MIN_DOT);
         if (eased > 0.01) {
           ctx!.fillStyle = `rgba(${DOT}, ${eased})`;
           ctx!.fillRect(x - size / 2, y - size / 2, size, size);
